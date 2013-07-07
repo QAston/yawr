@@ -1,0 +1,18 @@
+# Object files
+*.o
+obj
+
+# Executables
+*.lib
+*.a
+*.exe
+*.exe_cv
+*.pdb
+*.dll
+
+# project files
+.dub
+*.suo
+*.sln
+*.visualdproj
+*.dproj

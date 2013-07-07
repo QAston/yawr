@@ -1,0 +1,9 @@
+{
+	"name": "yawd",
+	"description": "Yet Another Wowd Rewrite - a World of Warcraft gameserver implementation in D programming language",
+	"dflags": ["-unittest"],
+	"dependencies": {
+		"vibe-d": {"version": "~master", "path": "../vibe.d"}
+	},
+	"versions" : ["VibeCustomMain"]
+}
