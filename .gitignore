@@ -16,3 +16,4 @@ obj
 *.sln
 *.visualdproj
 *.dproj
+*.userprefs
