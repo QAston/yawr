@@ -1,4 +1,4 @@
-module stream_utils;
+module protocol.stream_utils;
 
 import vibe.core.stream;
 

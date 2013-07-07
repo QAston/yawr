@@ -11,8 +11,9 @@ import std.file;
 import vibe.core.stream;
 import vibe.stream.operations;
 
+import protocol.stream_utils;
+
 import packet;
-import stream_utils;
 import util;
 
 
@@ -21,7 +22,7 @@ import util;
  +/
 interface PacketInput
 {
-	@property Packet front();
+	@property PacketDump front();
 	
 	void popFront();
 	
@@ -57,11 +58,11 @@ class PktPacketInput : PacketInput
 		PktVersion pktVersion;
 		uint startTickCount = 0;
 		SysTime startTime;
-		Packet _front;
+        PacketDump _front;
 	}
 
 
-	override @property Packet front()
+    override @property PacketDump front()
 	{
 		return _front;
 	}
@@ -234,7 +235,7 @@ class BinaryPacketInput : PacketInput
 {
 	private InputStream stream;
 
-	private Packet _front;
+    private PacketDump _front;
 	
 	this(InputStream stream)
 	{
@@ -242,7 +243,7 @@ class BinaryPacketInput : PacketInput
 		this._front = null;
 	}
 
-	override @property Packet front()
+    override @property PacketDump front()
 	{
 		return _front;
 	}
