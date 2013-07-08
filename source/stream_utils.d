@@ -4,6 +4,7 @@ import vibe.core.stream;
 
 import std.bitmanip;
 import std.system;
+import std.traits;
 
 /+
  + Reads Integral/Char/Boolean/FloatingPoint from an InputStream
