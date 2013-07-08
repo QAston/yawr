@@ -24,7 +24,9 @@ void main(string[] args)
 
         foreach (p; packets)
         {
-            writefln("%s %s", p.opcode.opcodeToString, p.dateTime.to!string);
+            writefln("%s %s %s", p.opcode.opcodeToString, p.direction, p.dateTime.to!string);
+            writefln("%s", p.toHex());
+            stdin.readln();
         }
     }
 }

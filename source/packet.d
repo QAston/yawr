@@ -15,5 +15,6 @@ class PacketDump : Packet {
         super(data, opcode);
 		this.direction = direction;
 		this.dateTime = dateTime;
+      
 	}
 }
