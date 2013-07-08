@@ -90,6 +90,7 @@ class PktPacketInput : PacketInput
 		else
 		{
 			pktVersion = PktVersion.V1; // pkt v1 is headerless
+            additionalData = marker;
 		}
 		
 		int additionalLength;
