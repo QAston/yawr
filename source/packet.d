@@ -4,7 +4,7 @@ import std.datetime;
 
 import protocol.packet;
 
-enum Direction { c2s = 0, s2c = 1 };
+enum Direction : uint { c2s = 0, s2c = 1,};
 
 class PacketDump : Packet {
 	Direction direction;

@@ -1,12 +1,11 @@
 module protocol.opcode_.V4_3_4_15595;
 
-enum Opcode
+enum Opcode : ushort
 {
-	NUM_OPCODE_HANDLERS                               = (0x7FFF+1),
+	/*NUM_OPCODE_HANDLERS                               = (0x7FFF+1),
 	UNKNOWN_OPCODE                                    = (0xFFFF+1),
 	NULL_OPCODE                                       = 0,
-	COMPRESSED_OPCODE_MASK                            = 0x8000,
-	
+	COMPRESSED_OPCODE_MASK                            = 0x8000,*/
 	CMSG_ACCEPT_LEVEL_GRANT                           = 0x0205,
 	CMSG_ACCEPT_TRADE                                 = 0x7110,
 	CMSG_ACTIVATETAXI                                 = 0x6E06,
@@ -501,7 +500,7 @@ enum Opcode
 	CMSG_SPIRIT_HEALER_ACTIVATE                       = 0x2E26,
 	CMSG_SPLIT_ITEM                                   = 0x0F17,
 	CMSG_STANDSTATECHANGE                             = 0x0535,
-	CMSG_START_QUEST                                  = 0x0000,
+	//CMSG_START_QUEST                                  = 0x0000,
 	CMSG_STOP_DANCE                                   = 0x2907,
 	CMSG_STORE_LOOT_IN_SLOT                           = 0x0000,
 	CMSG_SUBMIT_BUG                                   = 0x2520,

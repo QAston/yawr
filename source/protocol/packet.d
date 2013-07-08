@@ -11,6 +11,7 @@ class Packet
     this(ubyte[] data, uint opcode)
     {
         this.data = new MemoryStream(data);
+        // invalid opcode values will be still stored in this.opcode
         this.opcode = cast(Opcode)opcode;
     }
 }

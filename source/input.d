@@ -9,7 +9,6 @@ import std.stdio;
 import std.file;
 
 import vibe.core.stream;
-import vibe.stream.operations;
 
 import protocol.stream_utils;
 
@@ -51,6 +50,8 @@ class PktPacketInput : PacketInput
 		this.stream = stream;
 		this._front = null;
 		readHeader();
+        if (!empty())
+            popFront();
 	}
 
 	private {
@@ -59,6 +60,7 @@ class PktPacketInput : PacketInput
 		uint startTickCount = 0;
 		SysTime startTime;
         PacketDump _front;
+        ubyte[] additionalData;
 	}
 
 
@@ -79,10 +81,10 @@ class PktPacketInput : PacketInput
 
 	private void readHeader()
 	{
-		auto headerStart = stream.peekAllUTF8(3u);             // PKT
-		if (headerStart == "PKT")
+        ubyte[3] marker;
+        stream.read(marker[]);             // PKT
+        if (marker == "PKT")
 		{
-			stream.readAll(3u);
 			pktVersion = cast(PktVersion)stream.sread!ushort();      // sniff version
 		}
 		else
@@ -96,29 +98,30 @@ class PktPacketInput : PacketInput
 		{
 			case PktVersion.V1:
 			{
+                additionalData = marker;
 				break;
 			}
 			case PktVersion.V2_1:
 			{
 				stream.sread!ushort; // client build
-				stream.readAll(40); // session key
+				stream.sreadBytes(40); // session key
 				break;
 			}
 			case PktVersion.V2_2:
 			{
 				stream.sread!ubyte;                         // sniffer id
 				stream.sread!ushort;                       // client build
-				stream.readAll(4);                       // client locale
-				stream.readAll(20);                      // packet key
-				stream.readAll(64);                      // realm name
+				stream.sreadBytes(4);                       // client locale
+				stream.sreadBytes(20);                      // packet key
+				stream.sreadBytes(64);                      // realm name
 				break;
 			}
 			case PktVersion.V3_0:
 			{
 				auto snifferId = stream.sread!ubyte;         // sniffer id
 				stream.sread!uint;             // client build
-				stream.readAll(4);                       // client locale
-				stream.readAll(40);                      // session key
+				stream.sreadBytes(4);                       // client locale
+				stream.sreadBytes(40);                      // session key
 				additionalLength = stream.sread!uint;
 				if (snifferId == 10)                        // xyla
 				{
@@ -127,19 +130,19 @@ class PktPacketInput : PacketInput
 					startTime = unixTimeToSysTime(stream.sread!uint);   // start time
 					startTickCount = stream.sread!uint; // start tick count
 				}
-				stream.readAll(additionalLength);
+				stream.sreadBytes(additionalLength);
 				break;
 			}
 			case PktVersion.V3_1:
 			{
 				stream.sread!ubyte;                        // sniffer id
 				stream.sread!uint;             // client build
-				stream.readAll(4);                       // client locale
-				stream.readAll(40);                      // session key
+				stream.sreadBytes(4);                       // client locale
+				stream.sreadBytes(40);                      // session key
 				startTime = unixTimeToSysTime(stream.sread!uint); // start time
 				startTickCount = stream.sread!uint;     // start tick count
 				additionalLength = stream.sread!int;
-				stream.readAll(additionalLength);
+				stream.sreadBytes(additionalLength);
 				break;
 			}
 		}
@@ -164,7 +167,13 @@ class PktPacketInput : PacketInput
 					length = stream.sread!int;
 					direction = cast(packet.Direction)stream.sread!byte;
 					time = unixTimeToSysTime(cast(core.stdc.time.time_t)stream.sread!ulong);
-					data = stream.readAll(length);
+                    if (additionalData != null)
+                    {
+                        data = additionalData ~ stream.sreadBytes(length);
+                        additionalData = null;
+                    }
+                    else
+                        data = stream.sreadBytes(length);
 					break;
 				}
 				case PktVersion.V2_1:
@@ -178,12 +187,12 @@ class PktPacketInput : PacketInput
 					if (direction == packet.Direction.s2c)
 					{
 						opcode = stream.sread!ushort;
-						data = stream.readAll(length - 2);
+						data = stream.sreadBytes(length - 2);
 					}
 					else
 					{
 						opcode = stream.sread!int;
-						data = stream.readAll(length - 4);
+						data = stream.sreadBytes(length - 4);
 					}
 					
 					break;
@@ -209,9 +218,9 @@ class PktPacketInput : PacketInput
 					
 					int additionalSize = stream.sread!int;
 					length = stream.sread!int;
-					stream.readAll(additionalSize);
+                    stream.sreadBytes(additionalSize);
 					opcode = stream.sread!int;
-					data = stream.readAll(length - 4);
+                    data = stream.sreadBytes(cast(size_t)(length - 4));
 					break;
 				}
 			}
@@ -241,6 +250,8 @@ class BinaryPacketInput : PacketInput
 	{
 		this.stream = stream;
 		this._front = null;
+        if (!empty())
+            popFront();
 	}
 
     override @property PacketDump front()
@@ -254,7 +265,7 @@ class BinaryPacketInput : PacketInput
 		auto length = stream.sread!uint;
 		auto time = unixTimeToSysTime(stream.sread!int);
 		auto direction = cast(packet.Direction)stream.sread!char();
-		auto data = stream.readAll(length);
+		auto data = stream.sreadBytes(length);
 		
 		_front = new PacketDump(data, opcode, direction, time);
 	}

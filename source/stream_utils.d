@@ -17,6 +17,13 @@ T sread(T, Endian endianness = Endian.littleEndian)(InputStream s)
 	return buffer.read!(T, endianness)();
 }
 
+ubyte[] sreadBytes(InputStream stream, size_t size)
+{
+    ubyte[] data = new ubyte[size];
+    stream.read(data);
+    return data;
+}
+
 /+
  + Peeks Integral/Char/Boolean/FloatingPoint from an InputStream
  +/
@@ -24,7 +31,7 @@ T speek(T, Endian endianness = Endian.littleEndian)(InputStream s)
 	if (isIntegral!T || isSomeChar!T || isBoolean!T || isFloatOrDouble!T)
 in
 {
-	assert(s.leastSize >= T.sizeof);
+	assert(s.leastSize >= T.sizeof && s.dataAvailableForRead);
 }
 body
 {
@@ -38,7 +45,7 @@ body
 const(ubyte[]) peekAll(InputStream s, size_t length = size_t.max)
 in
 {
-	assert(length == size_t.max || s.leastSize >= length);
+    assert((length == size_t.max || s.leastSize >= length) && s.dataAvailableForRead);
 }
 body
 {
@@ -63,7 +70,7 @@ unittest {
 string peekAllUTF8(InputStream s, size_t length = size_t.max)
 in
 {
-	assert(length == size_t.max || s.leastSize >= length);
+    assert((length == size_t.max || s.leastSize >= length) && s.dataAvailableForRead);
 }
 body
 {

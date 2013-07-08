@@ -1,6 +1,6 @@
 module protocol.opcode_.V3_3_5a_12340;
 
-enum Opcode
+enum Opcode : ushort
 {
 	MSG_NULL_ACTION                                 = 0x000,
 	CMSG_BOOTME                                     = 0x001,
