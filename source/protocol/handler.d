@@ -1,8 +1,7 @@
-module protocol.handler;
-
 /++
  + This module handles access to protocol.handler_.* packet handlers
  +/
+module protocol.handler;
 
 public import protocol.handler_.session;
 import protocol.packet;
@@ -63,6 +62,13 @@ static this()
         }
     }
 }
+/+
+ + Checks if opcode handler is present
+ +/
+bool hasOpcodeHandler(Opcode op)
+{
+    return (op in handlers) != null;
+}
 
 /++
  + Reads packetData from a given packet
@@ -92,5 +98,9 @@ void write(Packet!false packet, Opcode opcode, void[] packetData)
 }
 
 unittest {
-
+    /*SmsgAuthChallenge test;
+    test.test();
+    write();
+    SmsgAuthChallenge empty;
+    read(Opcode.*/
 }

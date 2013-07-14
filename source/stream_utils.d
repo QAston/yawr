@@ -18,6 +18,8 @@ T sread(T, Endian endianness = Endian.littleEndian)(InputStream s)
 	return buffer.read!(T, endianness)();
 }
 
+static assert (bool.sizeof == 1);
+
 ubyte[] sreadBytes(InputStream stream, size_t size)
 {
     ubyte[] data = new ubyte[size];

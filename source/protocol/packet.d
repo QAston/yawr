@@ -86,9 +86,9 @@ class Packet(bool input)
     void val(alias Format = identity, T)(ref T value)
     {
         if (isInput)
-            value = Format.read!T(null);
+            value = Format.read!T(data);
         else
-            Format.write(null, value);
+            Format.write(data, value);
     }
     
     /+
