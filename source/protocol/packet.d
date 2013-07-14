@@ -5,8 +5,11 @@ import vibe.stream.memory;
 import protocol.opcode;
 import std.array;
 
-class Packet 
+class Packet(bool input)
 {
+    enum isInput = input;
+    enum isOutput = !input;
+
     MemoryStream data;
     Opcode opcode;
     this(ubyte[] data, uint opcode)
@@ -70,5 +73,90 @@ class Packet
         
         dump.put("|-------------------------------------------------|---------------------------------|");
         return std.conv.to!string(dump.data());
+    }
+   
+
+    /+
+     + Behavior depends on whenever in input or output mode
+     + input: Copies data from stream to value
+     + output: Copies data from value to stream
+     + Parameters:
+     + Format - template functions which handles read/write to stream
+     +/
+    void val(alias Format = identity, T)(ref T value)
+    {
+        if (isInput)
+            value = Format.read!T(null);
+        else
+            Format.write(null, value);
+    }
+    
+    /+
+     + Behavior depends on whenever in input or output mode
+     + input: Copies data from stream to value's length property
+     + output: Copies value's length property from value to stream
+     + Parameters:
+     + Format - template functions which handles read/write to stream
+     +/
+    void valCount(alias Format = identity, T)(ref T value)
+    {
+        
+    }
+    
+    void valBit(alias Format = identity, T)(ref T value, size_t index)
+    {
+        
+    }
+    
+    void valXor(alias Format = identity, T)(ref T value, size_t index)
+    {
+        
+    }
+    
+    /+
+     + 
+     + 
+     +/
+    void skip(T, alias Format = identity)()
+    {
+        T t;
+        val!Format(t);
+    }
+}
+
+struct Handler(Opcode op)
+{
+    enum opcode = op;
+}
+
+// packet read/write primitives
+template as(T)
+{
+    import vibe.core.stream;
+    import protocol.stream_utils;
+    
+    alias T returnedType;
+    void write(VAL)(OutputStream str, ref VAL val)
+    {
+        str.swrite!T(cast(T)val);
+    }
+    T read(VAL)(InputStream str)
+    {
+        return cast(VAL)str.sread!T();
+    }
+}
+
+static struct identity
+{
+    import vibe.core.stream;
+    import protocol.stream_utils;
+    
+    static void write(VAL)(OutputStream str, ref VAL val)
+    {
+        str.swrite!VAL(val);
+    }
+    static VAL read(VAL)(InputStream str)
+    {
+        return str.sread!VAL();
     }
 }
