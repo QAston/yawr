@@ -14,6 +14,15 @@ string fieldsToString(T)(T t, string alignment="")
         str.put(t);
         str.put("\n");
     }
+    else static if (is(T BASE == enum))
+    {
+        str.put(alignment);
+        str.put(std.conv.to!string(t));
+        str.put(" (");
+        str.put(std.conv.to!string(cast(BASE)t));
+        str.put(")");
+        str.put("\n");
+    }
     else static if (isBasicType!(T))
     {
         str.put(alignment);
@@ -51,6 +60,10 @@ string fieldsToString(T)(T t, string alignment="")
 
 unittest {
     import std.stdio;
+    enum Enumerator {
+        A = 1,
+        B = 40,
+    }
     struct A {
         struct C {
             int i = -7;
@@ -61,6 +74,7 @@ unittest {
         C c;
         C[4] d;
         alias C D;
+        Enumerator e;
     }
 
     struct B{
