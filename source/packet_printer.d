@@ -1,9 +1,12 @@
-module struct_printer;
+module packet_printer;
 
 import std.traits;
 
+import protocol.opcode;
+import protocol.handler;
+import std.typetuple;
 
-string fieldsToString(T)(T t, string alignment="")
+string fieldsToString(T)(in T t, in string alignment="")
 {
     import std.array;
     import std.range;
@@ -82,4 +85,33 @@ unittest {
     }
     fieldsToString(B());
     fieldsToString(A());
+}
+
+string packetPrinter(T)(void[] data)
+{
+    import std.stdio;
+    assert(T.sizeof * 4 == data.length);
+    return fieldsToString!(T)(*(cast(T*)data));
+}
+
+private static string function(void[])[Opcode] packetPrinters;
+
+string print(Opcode opcode, void[] data)
+in {
+    assert (hasOpcodeHandler(opcode));
+}
+body {
+    return packetPrinters[opcode](data);
+}
+
+static this()
+{
+    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, protocol.attribute_utils.ModuleMembersMatching!(protocol.handler_.session, isHandler)))
+    {
+        foreach(opc; handlerOpcode.opcodes)
+        {
+            assert (opc !in packetPrinters, "Opcode " ~ opc.opcodeToString ~ " has more than one handler registered for it");
+            packetPrinters[opc] = &packetPrinter!(handlerOpcode.handler);
+        }
+    }
 }

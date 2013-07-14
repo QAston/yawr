@@ -7,8 +7,10 @@ import std.conv;
 
 import util;
 import input;
+import packet_printer;
 
 import protocol.opcode;
+import protocol.handler;
 
 import vibe.core.file;
 
@@ -26,6 +28,14 @@ void main(string[] args)
         {
             writefln("%s %s %s", p.opcode.opcodeToString, p.direction, p.dateTime.to!string);
             writefln("%s", p.toHex());
+            if (!protocol.handler.hasOpcodeHandler(p.opcode))
+            {
+                writeln("No opcode handler for packet");
+                stdin.readln();
+                continue;
+            }
+            void[] data = read(p, p.opcode);
+            writefln("%s", print(p.opcode, data));
             stdin.readln();
         }
     }

@@ -67,16 +67,29 @@ static this()
  +/
 bool hasOpcodeHandler(Opcode op)
 {
-    return (op in handlers) != null;
+    return (op in handlers) !is null;
 }
 
 /++
  + Reads packetData from a given packet
  +/
 void[] read(Packet!true packet, Opcode opcode)
-{
+in {
+    assert (hasOpcodeHandler(opcode));
+}
+body {
+
     HandlerEntry handlerEntry = handlers[opcode];
-    void[] packetData = (handlerEntry.typeInfo.init()).dup;
+    void[] packetData = void;
+    if (handlerEntry.typeInfo.init().ptr is null)
+    {
+        packetData = cast(void[])new uint[handlerEntry.typeInfo.tsize()];
+    }
+    else
+    {
+        packetData = (handlerEntry.typeInfo.init()).dup;
+    }
+
     void delegate(Packet!true) caller;
     caller.ptr = packetData.ptr;
     caller.funcptr = handlerEntry.inputHandler;
@@ -88,7 +101,10 @@ void[] read(Packet!true packet, Opcode opcode)
  + Writes given packetData to a packet
  +/
 void write(Packet!false packet, Opcode opcode, void[] packetData)
-{
+in {
+    assert (hasOpcodeHandler(opcode));
+}
+body {
     HandlerEntry handlerEntry = handlers[opcode];
     assert(packetData.length == handlerEntry.typeInfo.tsize());
     void delegate(Packet!false) caller;
