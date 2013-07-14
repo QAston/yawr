@@ -5,7 +5,7 @@ import protocol.version_;
 import protocol.packet;
 
 @Handler!(Opcode.SMSG_AUTH_CHALLENGE)
-class SmsgAuthChallenge {
+struct SmsgAuthChallenge {
     uint[8] key;
     uint serverSeed;
     bool unk;
@@ -22,6 +22,17 @@ class SmsgAuthChallenge {
         p.val(key[7]);
         p.val(serverSeed);
         p.val(unk);
+    }
+
+    //@Test()
+    void test()
+    {
+        foreach (i, ref k; key)
+        {
+            k = i;
+        }
+        serverSeed = 1234;
+        unk = 1;
     }
 }
 
