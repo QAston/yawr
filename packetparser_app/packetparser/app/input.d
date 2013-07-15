@@ -19,9 +19,50 @@ import packetparser.wowversion.packet_dump;
 /+
  + Basic type for packet input ranges
  +/
-interface PacketInput : InputRange!PacketDump
+class PacketInput : InputRange!PacketDump
 {
-	@property int getBuild();
+	
+
+    PacketDump moveFront()
+    {
+        PacketDump ret = front();
+        if (!empty)
+        {
+            popFront();
+        }
+        return ret;
+    }
+
+    int opApply(int delegate(PacketDump) dg)
+    {
+        int result = 0;
+        while (!empty())
+        {
+            result = dg(moveFront());
+            if (result)
+                break;
+        }
+        return result;
+    }
+
+    int opApply(int delegate(uint, PacketDump) dg)
+    {
+        uint i = 0;
+        int result = 0;
+        while (!empty())
+        {
+            result = dg(i, moveFront());
+            i++;
+            if (result)
+                break;
+        }
+        return result;
+    }
+
+    abstract @property PacketDump front();
+    abstract @property bool empty();
+    abstract @property int getBuild();
+    abstract void popFront();
 }
 
 /+
@@ -53,14 +94,14 @@ class PktPacketInput : PacketInput
 		PktVersion pktVersion;
 		uint startTickCount = 0;
 		SysTime startTime;
-        PacketDump _front;
+        PacketDump* _front;
         ubyte[] additionalData;
 	}
 
 
     override @property PacketDump front()
 	{
-		return _front;
+		return *_front;
 	}
 
 	override @property bool empty()
@@ -148,7 +189,7 @@ class PktPacketInput : PacketInput
 		int opcode;
 		int length;
 		SysTime time;
-		Direction direction;
+		packetparser.wowversion.packet_dump.Direction direction;
 		ubyte[] data;
 		
 		uint cIndex = 0;
@@ -160,7 +201,7 @@ class PktPacketInput : PacketInput
 				{
 					opcode = stream.sread!ushort;
 					length = stream.sread!int;
-					direction = cast(Direction)stream.sread!byte;
+					direction = cast(packetparser.wowversion.packet_dump.Direction)stream.sread!byte;
 					time = unixTimeToSysTime(cast(core.stdc.time.time_t)stream.sread!ulong);
                     if (additionalData != null)
                     {
@@ -174,12 +215,12 @@ class PktPacketInput : PacketInput
 				case PktVersion.V2_1:
 				case PktVersion.V2_2:
 				{
-					direction = (stream.sread!ubyte == 0xff) ? Direction.s2c : Direction.c2s;
+					direction = (stream.sread!ubyte == 0xff) ? packetparser.wowversion.packet_dump.Direction.s2c : packetparser.wowversion.packet_dump.Direction.c2s;
 					time = unixTimeToSysTime(stream.sread!int);
 					stream.sread!int; // tick count
 					length = stream.sread!int;
 					
-					if (direction == Direction.s2c)
+					if (direction == packetparser.wowversion.packet_dump.Direction.s2c)
 					{
 						opcode = stream.sread!ushort;
 						data = stream.sreadBytes(length - 2);
@@ -195,7 +236,7 @@ class PktPacketInput : PacketInput
 				case PktVersion.V3_0:
 				case PktVersion.V3_1:
 				{
-					direction = (stream.sread!uint == 0x47534d53) ? Direction.s2c : Direction.c2s;
+					direction = (stream.sread!uint == 0x47534d53) ? packetparser.wowversion.packet_dump.Direction.s2c : packetparser.wowversion.packet_dump.Direction.c2s;
 					
 					if (pktVersion == PktVersion.V3_0)
 					{
@@ -220,14 +261,8 @@ class PktPacketInput : PacketInput
 				}
 			}
 		}
-
-		// FIXME
-		// ignore opcodes that were not "decrypted" (usually because of
-		// a missing session key) (only applicable to 335 or earlier)
-		//if (opcode >= 1312 && ClientVersion.Build <= ClientVersionBuild.V3_3_5a_12340 && ClientVersion.Build > ClientVersionBuild.Zero)
-			//return null;
 		
-		_front = PacketDump(data, opcode, direction, time);
+		_front = new PacketDump(data, opcode, direction, time);
 	}
 }
 
@@ -239,7 +274,7 @@ class BinaryPacketInput : PacketInput
 {
 	private InputStream stream;
 
-    private PacketDump _front;
+    private PacketDump* _front;
 	
 	this(InputStream stream)
 	{
@@ -251,7 +286,7 @@ class BinaryPacketInput : PacketInput
 
     override @property PacketDump front()
 	{
-		return _front;
+		return *_front;
 	}
 	
 	override void popFront()
@@ -259,10 +294,10 @@ class BinaryPacketInput : PacketInput
 		auto opcode = stream.sread!uint;
 		auto length = stream.sread!uint;
 		auto time = unixTimeToSysTime(stream.sread!int);
-		auto direction = cast(Direction)stream.sread!char();
+		auto direction = cast(packetparser.wowversion.packet_dump.Direction)stream.sread!char();
 		auto data = stream.sreadBytes(length);
 		
-		_front = PacketDump(data, opcode, direction, time);
+		_front = new PacketDump(data, opcode, direction, time);
 	}
 	
 	override @property bool empty()

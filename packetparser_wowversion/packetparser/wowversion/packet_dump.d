@@ -11,15 +11,16 @@ import std.range;
 
 enum Direction : uint { c2s = 0, s2c = 1,};
 
-class PacketDump {
+struct PacketDump {
     ubyte[] data;
     uint opcode;
 	Direction direction;
 	SysTime dateTime;
 }
 
-extern void parse(InputRange!PacketDump packets)
+export void function (InputRange!PacketDump) nothrow getParser() 
 {
     import packetparser.wowversion.parser;
-    packetparser.wowversion.parser.parse(packets);
+    static assert(is(typeof(&parse) == typeof(return)));
+    return &parse;
 }

@@ -12,21 +12,26 @@ import packetparser.wowversion.packet_dump;
 import packetparser.wowversion.printer;;
 
 
-void parse(InputRange!PacketDump packets)
+void parse(InputRange!PacketDump packets) nothrow
 {
-    foreach(packetDump; packets)
-    {
-        auto p = new Packet!true(packetDump.data, cast(Opcode)packetDump.opcode);
-        writefln("%s %s %s", p.opcode.opcodeToString, packetDump.direction, packetDump.dateTime.to!string);
-        writefln("%s", p.toHex());
-        if (!protocol.handler.hasOpcodeHandler(p.opcode))
+    try {
+        foreach(packetDump; packets)
         {
-            writeln("No opcode handler for packet");
+            auto p = new Packet!true(packetDump.data, cast(Opcode)packetDump.opcode);
+            writefln("%s %s %s", p.opcode.opcodeToString, packetDump.direction, packetDump.dateTime.to!string);
+            writefln("%s", p.toHex());
+            if (!protocol.handler.hasOpcodeHandler(p.opcode))
+            {
+                writeln("No opcode handler for packet");
+                stdin.readln();
+                continue;
+            }
+            void[] data = read(p, p.opcode);
+            writefln("%s", print(p.opcode, data));
             stdin.readln();
-            continue;
         }
-        void[] data = read(p, p.opcode);
-        writefln("%s", print(p.opcode, data));
-        stdin.readln();
+    }
+    catch(Exception ex)
+    {
     }
 }
