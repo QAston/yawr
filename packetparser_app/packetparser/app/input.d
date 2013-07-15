@@ -1,7 +1,7 @@
 /+
  + Provides packet input ranges
  +/
-module input;
+module packetparser.app.input;
 
 import std.range;
 import std.datetime;
@@ -11,21 +11,16 @@ import std.file;
 import vibe.core.stream;
 
 import util.stream;
+import util.time;
 
-import packet;
+import packetparser.wowversion.packet_dump;
 
 
 /+
  + Basic type for packet input ranges
  +/
-interface PacketInput
+interface PacketInput : InputRange!PacketDump
 {
-	@property PacketDump front();
-	
-	void popFront();
-	
-	@property bool empty();
-
 	@property int getBuild();
 }
 
@@ -153,7 +148,7 @@ class PktPacketInput : PacketInput
 		int opcode;
 		int length;
 		SysTime time;
-		packet.Direction direction;
+		Direction direction;
 		ubyte[] data;
 		
 		uint cIndex = 0;
@@ -165,7 +160,7 @@ class PktPacketInput : PacketInput
 				{
 					opcode = stream.sread!ushort;
 					length = stream.sread!int;
-					direction = cast(packet.Direction)stream.sread!byte;
+					direction = cast(Direction)stream.sread!byte;
 					time = unixTimeToSysTime(cast(core.stdc.time.time_t)stream.sread!ulong);
                     if (additionalData != null)
                     {
@@ -179,12 +174,12 @@ class PktPacketInput : PacketInput
 				case PktVersion.V2_1:
 				case PktVersion.V2_2:
 				{
-					direction = (stream.sread!ubyte == 0xff) ? packet.Direction.s2c : packet.Direction.c2s;
+					direction = (stream.sread!ubyte == 0xff) ? Direction.s2c : Direction.c2s;
 					time = unixTimeToSysTime(stream.sread!int);
 					stream.sread!int; // tick count
 					length = stream.sread!int;
 					
-					if (direction == packet.Direction.s2c)
+					if (direction == Direction.s2c)
 					{
 						opcode = stream.sread!ushort;
 						data = stream.sreadBytes(length - 2);
@@ -200,7 +195,7 @@ class PktPacketInput : PacketInput
 				case PktVersion.V3_0:
 				case PktVersion.V3_1:
 				{
-					direction = (stream.sread!uint == 0x47534d53) ? packet.Direction.s2c : packet.Direction.c2s;
+					direction = (stream.sread!uint == 0x47534d53) ? Direction.s2c : Direction.c2s;
 					
 					if (pktVersion == PktVersion.V3_0)
 					{
@@ -232,7 +227,7 @@ class PktPacketInput : PacketInput
 		//if (opcode >= 1312 && ClientVersion.Build <= ClientVersionBuild.V3_3_5a_12340 && ClientVersion.Build > ClientVersionBuild.Zero)
 			//return null;
 		
-		_front = new PacketDump(data, opcode, direction, time);
+		_front = PacketDump(data, opcode, direction, time);
 	}
 }
 
@@ -264,10 +259,10 @@ class BinaryPacketInput : PacketInput
 		auto opcode = stream.sread!uint;
 		auto length = stream.sread!uint;
 		auto time = unixTimeToSysTime(stream.sread!int);
-		auto direction = cast(packet.Direction)stream.sread!char();
+		auto direction = cast(Direction)stream.sread!char();
 		auto data = stream.sreadBytes(length);
 		
-		_front = new PacketDump(data, opcode, direction, time);
+		_front = PacketDump(data, opcode, direction, time);
 	}
 	
 	override @property bool empty()

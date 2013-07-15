@@ -2,7 +2,9 @@
 	"name": "yawr_packetparser_app",
 	"description": "Yet Another Wowd Rewrite - a World of Warcraft gameserver implementation in D programming language",
 	"targetType": "executable",
-	"sourcePaths": ["packetparser", "../util"],
+	"sourcePaths": ["packetparser"],
+	"sourceFiles": ["../util/util/time.d", "../util/util/stream.d"],
+	"importPaths": ["../packetparser_wowversion"],
 	"dflags": ["-unittest"],
 	"dependencies": {
 		"vibe-d": {"version": "~master", "path": "../../vibe.d"},

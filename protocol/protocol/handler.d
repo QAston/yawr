@@ -10,6 +10,7 @@ import std.traits;
 import std.typetuple;
 import std.string;
 import std.conv;
+import util.attribute;
 
 struct HandlerEntry {
     TypeInfo typeInfo;
@@ -53,7 +54,7 @@ private static HandlerEntry[Opcode] handlers;
 
 static this()
 {
-    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, util.attribute.ModuleMembersMatching!(protocol.handler_.session, isHandler)))
+    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, ModuleMembersMatching!(protocol.handler_.session, isHandler)))
     {
         foreach(opc; handlerOpcode.opcodes)
         {

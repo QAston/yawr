@@ -1,10 +1,11 @@
-module packet_printer;
+module packetparser.wowversion.printer;
 
 import std.traits;
 
 import protocol.opcode;
 import protocol.handler;
 import std.typetuple;
+import util.attribute;
 
 string fieldsToString(T)(in T t, in string alignment="")
 {
@@ -106,7 +107,7 @@ body {
 
 static this()
 {
-    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, protocol.attribute_utils.ModuleMembersMatching!(protocol.handler_.session, isHandler)))
+    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, ModuleMembersMatching!(protocol.handler_.session, isHandler)))
     {
         foreach(opc; handlerOpcode.opcodes)
         {
