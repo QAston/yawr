@@ -1,10 +1,8 @@
-module protocol.attribute_utils;
+module util.attribute;
 
 import std.typetuple;
 import std.algorithm;
 import std.traits;
-
-import protocol.packet;
 
 template isModule(alias T) {
     enum isModule = T.stringof.startsWith("module ");

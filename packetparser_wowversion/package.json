@@ -1,9 +1,11 @@
 {
-	"name": "yawd",
+	"name": "yawr_packetparser_patch",
 	"description": "Yet Another Wowd Rewrite - a World of Warcraft gameserver implementation in D programming language",
+	"targetType": "library",
+	"sourcePaths": ["packetparser"],
 	"dflags": ["-unittest"],
+	"versions" : ["VibeCustomMain"],
 	"dependencies": {
-		"vibe-d": {"version": "~master", "path": "../vibe.d"}
+		"yawr_protocol": "~master",
 	},
-	"versions" : ["VibeCustomMain"]
 }

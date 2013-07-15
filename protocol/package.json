@@ -1,0 +1,11 @@
+{
+	"name": "yawr_protocol",
+	"description": "Yet Another Wowd Rewrite - a World of Warcraft gameserver implementation in D programming language",
+	"targetType": "library",
+	"sourcePaths": ["protocol", "../util"],
+	"dflags": ["-unittest"],
+	"dependencies": {
+		"vibe-d": {"version": "~master", "path": "../../vibe.d"}
+	},
+	"versions" : ["VibeCustomMain", "WowVersionV4_3_4_15595"],
+}

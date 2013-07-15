@@ -28,7 +28,7 @@ class Packet(bool input)
         import std.ascii, std.format;
         import std.array;
 
-        import protocol.stream_utils;
+        import util.stream;
         auto dump = appender!(dchar[]);
         
         dump.put("|-------------------------------------------------|---------------------------------|\n");
@@ -133,7 +133,7 @@ struct Handler(Opcode op)
 template as(T)
 {
     import vibe.core.stream;
-    import protocol.stream_utils;
+    import util.stream;
     
     alias T returnedType;
     void write(VAL)(OutputStream str, ref VAL val)
@@ -149,7 +149,7 @@ template as(T)
 static struct identity
 {
     import vibe.core.stream;
-    import protocol.stream_utils;
+    import util.stream;
     
     static void write(VAL)(OutputStream str, ref VAL val)
     {

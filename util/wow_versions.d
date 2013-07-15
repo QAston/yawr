@@ -1,10 +1,8 @@
-module protocol.version_;
+module util.wow_versions;
 
-import protocol.config;
-
-enum Version {
+enum WowVersion {
 	V1_12_1_5875 = 5875,
-	
+
 	V2_0_1_6180 = 6180,
 	V2_0_3_6299 = 6299,
 	V2_0_6_6337 = 6337,
@@ -22,7 +20,7 @@ enum Version {
 	V2_4_1_8125 = 8125,
 	V2_4_2_8209 = 8209,
 	V2_4_3_8606 = 8606,
-	
+
 	V3_0_2_9056 = 9056,
 	V3_0_3_9183 = 9183,
 	V3_0_8_9464 = 9464,
@@ -43,7 +41,7 @@ enum Version {
 	V3_3_3a_11723 = 11723,
 	V3_3_5_12213 = 12213,
 	V3_3_5a_12340 = 12340,
-	
+
 	V4_0_1_13164 = 13164,
 	V4_0_1a_13205 = 13205,
 	V4_0_3_13329 = 13329,
@@ -66,5 +64,3 @@ enum Version {
 	V5_1_0_16309 = 16309,
 	V5_1_0a_16357 = 16357
 }
-
-enum protocolVersion = cast(Version)clientBuild;

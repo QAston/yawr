@@ -53,7 +53,7 @@ private static HandlerEntry[Opcode] handlers;
 
 static this()
 {
-    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, protocol.attribute_utils.ModuleMembersMatching!(protocol.handler_.session, isHandler)))
+    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, util.attribute.ModuleMembersMatching!(protocol.handler_.session, isHandler)))
     {
         foreach(opc; handlerOpcode.opcodes)
         {

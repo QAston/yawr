@@ -1,6 +1,6 @@
 module protocol.updatefields;
 
-import protocol.version_;
+import util.wow_version;
 
 enum UFVisibilityFlags
 {
@@ -35,23 +35,23 @@ align (1) struct ObjectFields
 {
 	align (1):
 	Guid guid;
-	static if (protocolVersion >= Version.V4_2_0_14333) {
+	static if (wowVersion >= WowVersion.V4_2_0_14333) {
 		ulong data;
 	}
 	ushort[2] type;
 	uint entry;
 	float scale;
-	static if (protocolVersion >= Version.V4_0_6_13596 && protocolVersion < Version.V4_2_0_14333) {
+	static if (wowVersion >= WowVersion.V4_0_6_13596 && wowVersion < WowVersion.V4_2_0_14333) {
 		ulong data;
 	}
 	@Visibility(UFVisibilityFlags.NONE)
 	int padding;
 }
 
-static if (protocolVersion == Version.V3_3_5a_12340) {
+static if (wowVersion == WowVersion.V3_3_5a_12340) {
 	static assert (ObjectFields.sizeof == 6*4);
 }
-else static if (protocolVersion == Version.V4_3_4_15595) {
+else static if (wowVersion == WowVersion.V4_3_4_15595) {
 	static assert (ObjectFields.sizeof == 8*4);
 }
 
@@ -60,9 +60,9 @@ alias int ItemFlags;
 align (1) struct ItemFields
 {
 	align (1):
-	static if (protocolVersion >= Version.V4_3_0_15005)
+	static if (wowVersion >= WowVersion.V4_3_0_15005)
 		enum numItemEnchantments  = 15;
-	else static if (protocolVersion >= Version.V4_0_6_13596)
+	else static if (wowVersion >= WowVersion.V4_0_6_13596)
 		enum numItemEnchantments  = 14;
 	else
 		enum numItemEnchantments  = 12;
@@ -86,16 +86,16 @@ align (1) struct ItemFields
 	@Visibility(UFVisibilityFlags.OWNER | UFVisibilityFlags.ITEM_OWNER)
 	int maxDurability;
 	int createPlayedTime;
-	static if (protocolVersion < Version.V4_3_0_15005) {
+	static if (wowVersion < WowVersion.V4_3_0_15005) {
 		@Visibility(UFVisibilityFlags.NONE)
 		uint padding;
 	}
 }
 
-static if (protocolVersion == Version.V3_3_5a_12340) {
+static if (wowVersion == WowVersion.V3_3_5a_12340) {
 	static assert (ItemFields.sizeof == ObjectFields.sizeof + 0x003A*4);
 }
-else static if (protocolVersion == Version.V4_3_4_15595) {
+else static if (wowVersion == WowVersion.V4_3_4_15595) {
 	static assert (ItemFields.sizeof == ObjectFields.sizeof + 0x0042*4);
 }
 
@@ -109,10 +109,10 @@ align (1) struct ContainerFields
 	Guid[36] slots;
 }
 
-static if (protocolVersion == Version.V3_3_5a_12340) {
+static if (wowVersion == WowVersion.V3_3_5a_12340) {
 	static assert (ContainerFields.sizeof == ItemFields.sizeof + 0x004A*4);
 }
-else static if (protocolVersion == Version.V4_3_4_15595) {
+else static if (wowVersion == WowVersion.V4_3_4_15595) {
 	static assert (ContainerFields.sizeof == ItemFields.sizeof + 0x004A*4);
 }
 
@@ -123,9 +123,9 @@ align (1) struct UnitFields
 	alias uint Flags, DynamicFlags, NpcFlags;
 	alias uint Flags2;
 
-	static if (protocolVersion >= Version.V4_2_0_14333)
+	static if (wowVersion >= WowVersion.V4_2_0_14333)
 		enum numPowers = 5;
-	else static if (protocolVersion >= Version.V4_0_6_13596)
+	else static if (wowVersion >= WowVersion.V4_0_6_13596)
 		enum numPowers = 11;
 	else
 		enum numPowers = 7;
@@ -182,7 +182,7 @@ align (1) struct UnitFields
 	@Visibility(UFVisibilityFlags.DYNAMIC)
 	DynamicFlags dynamicFlags;
 	float modCastSpeed;
-	static if (protocolVersion >= Version.V4_2_0_14333)
+	static if (wowVersion >= WowVersion.V4_2_0_14333)
 		float modCastHaste;
 	uint createdBySpell;
 	@Visibility(UFVisibilityFlags.DYNAMIC)
@@ -205,7 +205,7 @@ align (1) struct UnitFields
 	ByteFlags2 bytes2;
 	@Visibility(UFVisibilityFlags.PRIVATE | UFVisibilityFlags.OWNER) {
 		uint attackPower;
-		static if (protocolVersion >= Version.V4_0_6_13596) {
+		static if (wowVersion >= WowVersion.V4_0_6_13596) {
 			uint attackPowerModPos;
 			uint attackPowerModNeg;
 		}
@@ -214,7 +214,7 @@ align (1) struct UnitFields
 
 		float attackPowerMultiplier;
 		uint rangedAttackPower;
-		static if (protocolVersion >= Version.V4_0_6_13596) {
+		static if (wowVersion >= WowVersion.V4_0_6_13596) {
 			uint rangedAttackPowerModPos;
 			uint rangedAttackPowerModNeg;
 		}
@@ -229,18 +229,18 @@ align (1) struct UnitFields
 		uint maxHealthModifier;
 	}
 	float hoverHeight;
-	static if (protocolVersion >= Version.V4_0_6_13596)
+	static if (wowVersion >= WowVersion.V4_0_6_13596)
 		uint maxItemLevel;
-	static if (protocolVersion < Version.V4_0_6_13596 || protocolVersion >= Version.V4_2_0_14333) {
+	static if (wowVersion < WowVersion.V4_0_6_13596 || wowVersion >= WowVersion.V4_2_0_14333) {
 		@Visibility(UFVisibilityFlags.NONE)
 		uint padding;
 	}
 }
 
-static if (protocolVersion == Version.V3_3_5a_12340) {
+static if (wowVersion == WowVersion.V3_3_5a_12340) {
 	static assert (UnitFields.sizeof == ObjectFields.sizeof + 0x008E*4);
 }
-else static if (protocolVersion == Version.V4_3_4_15595) {
+else static if (wowVersion == WowVersion.V4_3_4_15595) {
 	static assert (UnitFields.sizeof == ObjectFields.sizeof + 0x008A*4);
 }
 
@@ -252,22 +252,22 @@ align (1) struct PlayerFields
 	alias uint[2] VisibleItem; // entryid, enchantmentid
 	alias byte[4] Bytes;
 
-	static if (protocolVersion >= Version.V4_0_6_13596)
+	static if (wowVersion >= WowVersion.V4_0_6_13596)
 		enum numQuestLogEntries = 50;
 	else
 		enum numQuestLogEntries = 25;
 
-	static if (protocolVersion >= Version.V4_0_6_13596)
+	static if (wowVersion >= WowVersion.V4_0_6_13596)
 		enum numZones = 156;
 	else
 		enum numZones = 128;
 
-	static if (protocolVersion >= Version.V4_0_6_13596)
+	static if (wowVersion >= WowVersion.V4_0_6_13596)
 		enum numCombatRatings = 26;
 	else
 		enum numCombatRatings = 25;
 
-	static if (protocolVersion >= Version.V4_0_6_13596)
+	static if (wowVersion >= WowVersion.V4_0_6_13596)
 		enum numGlyphs =  9;
 	else
 		enum numGlyphs = 6;
@@ -276,7 +276,7 @@ align (1) struct PlayerFields
 
 	Guid duelArbiter;
 	Flags flags;
-	static if (protocolVersion >= Version.V4_0_6_13596)
+	static if (wowVersion >= WowVersion.V4_0_6_13596)
 	{
 		uint guildRank;
 		uint guildDeleteDate;
@@ -305,16 +305,16 @@ align (1) struct PlayerFields
 		Guid[28] bankSlots;
 		Guid[7] bankBagSlots;
 		Guid[12] vendorBuyBackSlots;
-		static if (protocolVersion < Version.V4_2_0_14333)
+		static if (wowVersion < WowVersion.V4_2_0_14333)
 			Guid[32] keyringSlots;
-		static if (protocolVersion < Version.V4_0_6_13596)
+		static if (wowVersion < WowVersion.V4_0_6_13596)
 			ulong[32] currencyTokenSlots;
 		Guid farsight;
-	    static if (protocolVersion >= Version.V4_3_3_15354)
+	    static if (wowVersion >= WowVersion.V4_3_3_15354)
 			ulong knownTitles[4];
 	    else
 	    	ulong knownTitles[3];
-		static if (protocolVersion < Version.V4_0_6_13596)
+		static if (wowVersion < WowVersion.V4_0_6_13596)
 			ulong knownCurrencies;
 		uint xp;
 		uint nextLevelXp;
@@ -325,11 +325,11 @@ align (1) struct PlayerFields
 		uint[64] skillModifiers;
 		uint[64] skillTalents;
 		uint characterPoints;
-		static if (protocolVersion < Version.V4_0_6_13596)
+		static if (wowVersion < WowVersion.V4_0_6_13596)
 			uint characterPoints2;
 		uint trackCreatures;
 		uint trackResources;
-		static if (protocolVersion >= Version.V4_2_0_14333)
+		static if (wowVersion >= WowVersion.V4_2_0_14333)
 		{
 			uint expertise;
 			uint offhandExpertise;
@@ -337,7 +337,7 @@ align (1) struct PlayerFields
 		float blockPercentage;
 		float dodgePercentage;
 		float parryPercentage;
-		static if (protocolVersion < Version.V4_2_0_14333)
+		static if (wowVersion < WowVersion.V4_2_0_14333)
 		{
 			uint expertise;
 			uint offhandExpertise;
@@ -348,12 +348,12 @@ align (1) struct PlayerFields
 		float[7] spellCritPercentage;
 		uint shieldBlock;
 		float shieldBlockCritPercentage;
-		static if (protocolVersion > Version.V4_0_6_13596) {
+		static if (wowVersion > WowVersion.V4_0_6_13596) {
 			float mastery;
 		}
 		Bytes[numZones] exploredZones;
 		uint restStateExperience;
-		static if (protocolVersion >= Version.V4_0_6_13596)
+		static if (wowVersion >= WowVersion.V4_0_6_13596)
 			ulong coinage;
 		else
 			uint coinage;
@@ -363,24 +363,24 @@ align (1) struct PlayerFields
 		uint modHealingDonePos;
 		float modHealingPct;
 		float modHealingDonePct;
-		static if (protocolVersion >= Version.V4_2_0_14333)
+		static if (wowVersion >= WowVersion.V4_2_0_14333)
 			float[3] weaponDamageMultipliers;
-		static if (protocolVersion >= Version.V4_0_6_13596)
+		static if (wowVersion >= WowVersion.V4_0_6_13596)
 			float modSpellPowerPct;
-	    static if (protocolVersion >= Version.V4_3_3_15354) {
+	    static if (wowVersion >= WowVersion.V4_3_3_15354) {
 			float overrideSpellPowerByApPct;
 	    }
 		int modTargetResistance;
 		int modTargetPhysicalResistance;
 		Bytes privateBytes;
-		static if (protocolVersion < Version.V4_0_6_13596)
+		static if (wowVersion < WowVersion.V4_0_6_13596)
 			uint ammoId;
 		uint selfResSpell;
 		uint pvpMedals;
 		uint[12] buybackPrices;
 		uint[12] buybackTimestamps;
 		uint kills;
-		static if (protocolVersion < Version.V4_0_6_13596) {
+		static if (wowVersion < WowVersion.V4_0_6_13596) {
 			uint todayContribution;
 			uint yesterdayContribution;
 		}
@@ -389,7 +389,7 @@ align (1) struct PlayerFields
 		uint watchedFactionIndex;
 		uint[numCombatRatings] combatRating;
 		uint[7][3] arenaTeamInfo;
-		static if (protocolVersion < Version.V4_0_6_13596) {
+		static if (wowVersion < WowVersion.V4_0_6_13596) {
 			uint honorCurrency;
 			uint arenaCurrency;
 		}
@@ -404,7 +404,7 @@ align (1) struct PlayerFields
 		uint[numGlyphs] glyphs;
 		uint glyphsEnabled;
 		uint petSpellPower;
-		static if (protocolVersion >= Version.V4_0_6_13596) {
+		static if (wowVersion >= WowVersion.V4_0_6_13596) {
 			uint[8] researching;
 			uint[8] researchState;
 			uint[2] professionSkillLine;
@@ -417,16 +417,16 @@ align (1) struct PlayerFields
 			float modHasteRegen;
 		}
 	}
-	static if (protocolVersion < Version.V4_3_3_15354 && protocolVersion >= Version.V4_2_0_14333) {
+	static if (wowVersion < WowVersion.V4_3_3_15354 && wowVersion >= WowVersion.V4_2_0_14333) {
 	    @Visibility(UFVisibilityFlags.NONE)
 		uint padding;
 	}
 }
 
-static if (protocolVersion == Version.V3_3_5a_12340) {
+static if (wowVersion == WowVersion.V3_3_5a_12340) {
 	static assert (PlayerFields.sizeof == UnitFields.sizeof + 0x049A*4);
 }
-else static if (protocolVersion == Version.V4_3_4_15595) {
+else static if (wowVersion == WowVersion.V4_3_4_15595) {
 	static assert (PlayerFields.sizeof == UnitFields.sizeof + 0x04D6*4);
 }
 
@@ -447,10 +447,10 @@ align (1) struct GameObjectFields
 	Bytes bytes;
 }
 
-static if (protocolVersion == Version.V3_3_5a_12340) {
+static if (wowVersion == WowVersion.V3_3_5a_12340) {
 	static assert (GameObjectFields.sizeof == ObjectFields.sizeof + 0x000C*4);
 }
-else static if (protocolVersion == Version.V4_3_4_15595) {
+else static if (wowVersion == WowVersion.V4_3_4_15595) {
 	static assert (GameObjectFields.sizeof == ObjectFields.sizeof + 0x000C*4);
 }
 
@@ -467,10 +467,10 @@ align (1) struct DynamicObjectFields
 	uint castTime;
 }
 
-static if (protocolVersion == Version.V3_3_5a_12340) {
+static if (wowVersion == WowVersion.V3_3_5a_12340) {
 	static assert (DynamicObjectFields.sizeof == ObjectFields.sizeof + 0x0006*4);
 }
-else static if (protocolVersion == Version.V4_3_4_15595) {
+else static if (wowVersion == WowVersion.V4_3_4_15595) {
 	static assert (DynamicObjectFields.sizeof == ObjectFields.sizeof + 0x0006*4);
 }
 
@@ -486,7 +486,7 @@ align (1) struct CorpseFields
 	uint[19] items;
 	Bytes1 bytes1;
 	Bytes2 bytes2;
-	static if (protocolVersion < Version.V4_0_6_13596) {
+	static if (wowVersion < WowVersion.V4_0_6_13596) {
 		uint guild;
 	}
 
@@ -495,20 +495,20 @@ align (1) struct CorpseFields
 	@Visibility(UFVisibilityFlags.DYNAMIC)
 	DynamicFlags dynamicFlags;
 
-	static if (protocolVersion < Version.V4_0_6_13596) {
+	static if (wowVersion < WowVersion.V4_0_6_13596) {
 		@Visibility(UFVisibilityFlags.NONE)
 		uint padding;
 	}
 }
 
-static if (protocolVersion == Version.V3_3_5a_12340) {
+static if (wowVersion == WowVersion.V3_3_5a_12340) {
 	static assert (CorpseFields.sizeof == ObjectFields.sizeof + 0x001E*4);
 }
-else static if (protocolVersion == Version.V4_3_4_15595) {
+else static if (wowVersion == WowVersion.V4_3_4_15595) {
 	static assert (CorpseFields.sizeof == ObjectFields.sizeof + 0x001C*4);
 }
 
-static if (protocolVersion >=  Version.V4_3_3_15354) {
+static if (wowVersion >=  WowVersion.V4_3_3_15354) {
 	align (1) struct AreaTriggerFields
 	{
 		align (1):
@@ -519,7 +519,7 @@ static if (protocolVersion >=  Version.V4_3_3_15354) {
 		float[3] finalPos;
 	}
 
-	static if (protocolVersion == Version.V4_3_4_15595) {
+	static if (wowVersion == WowVersion.V4_3_4_15595) {
 		static assert (AreaTriggerFields.sizeof == ObjectFields.sizeof + 0x0006*4);
 	}
 }

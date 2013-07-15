@@ -5,7 +5,7 @@ import std.algorithm;
 import std.range;
 import std.conv;
 
-import util;
+import util.time;
 import input;
 import packet_printer;
 

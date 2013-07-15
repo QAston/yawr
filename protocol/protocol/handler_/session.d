@@ -1,7 +1,7 @@
 module protocol.handler_.session;
 
 import protocol.opcode;
-import protocol.version_;
+import util.wow_version;
 import protocol.packet;
 
 @Handler!(Opcode.SMSG_AUTH_CHALLENGE)
@@ -109,7 +109,7 @@ struct ClientAddonsList(bool valDeflatedSize) {
     {
         // options: deflate stream, write deflated size
         deflatedBlock!(true, valDeflatedSize)((){
-            static if (protocolVersion >= V3_0_8_9464)
+            static if (wowVersion >= V3_0_8_9464)
             {
                 addons.valCount;
 
