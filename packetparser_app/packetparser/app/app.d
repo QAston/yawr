@@ -30,7 +30,8 @@ int main(string[] args)
         printf("error loading mydll.dll\n");
         return 1;
     }
-    FARPROC fp = GetProcAddress(h, "D5mydll10getMyClassFZC5mydll7MyClass");
+
+    FARPROC fp = GetProcAddress(h, mangledSymbol!(packetparser.wowversion.packet_dump.getParser));
 
     if (fp is null)
     {
