@@ -8,6 +8,9 @@ string importDynamically(alias importedModule)()
 	return "extern(C) int D" ~ importedModule.mangleof ~ "12__ModuleInfoZ;";
 }
 
+/+
+ + Mangles symbol according to DLL rules
+ +/
 const(char)* mangledSymbol(alias symbol)()
 {
     static assert(((symbol.mangleof) ~ "\0").length < 128, "longer names won't be available in a library!!!");

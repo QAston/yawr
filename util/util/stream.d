@@ -1,3 +1,6 @@
+/+
+ + This module provides UFCS methods for Input and Output streams
+ +/
 module util.stream;
 
 import vibe.core.stream;
@@ -20,6 +23,9 @@ T sread(T, Endian endianness = Endian.littleEndian)(InputStream s)
 
 static assert (bool.sizeof == 1);
 
+/+
+ + Reads array of bytes of a given size out of an InputStream
+ +/
 ubyte[] sreadBytes(InputStream stream, size_t size)
 {
     ubyte[] data = new ubyte[size];

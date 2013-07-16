@@ -15,14 +15,17 @@ import util.time;
 
 import p_parser.dump;
 
+import util.wow_versions;
+
 
 /+
  + Basic type for packet input ranges
  +/
 class PacketInput : InputRange!PacketDump
 {
-	
-
+    /+
+     + Input range primitives
+     +/
     PacketDump moveFront()
     {
         PacketDump ret = front();
@@ -33,6 +36,7 @@ class PacketInput : InputRange!PacketDump
         return ret;
     }
 
+    /// Ditto
     int opApply(int delegate(PacketDump) dg)
     {
         int result = 0;
@@ -45,6 +49,7 @@ class PacketInput : InputRange!PacketDump
         return result;
     }
 
+    /// Ditto
     int opApply(int delegate(uint, PacketDump) dg)
     {
         uint i = 0;
@@ -59,17 +64,32 @@ class PacketInput : InputRange!PacketDump
         return result;
     }
 
+    /// Ditto
     abstract @property PacketDump front();
+    /// Ditto
     abstract @property bool empty();
-    abstract @property int getBuild();
+    /// Ditto
     abstract void popFront();
+
+    /+
+     + returns WowVersion of packets stored in range
+     + 
+     + based on packet's date
+     +/
+    @property WowVersion getBuild()
+    out (result) {
+        assert(result != WowVersion.Undefined);
+    }
+    body {
+        return getWowVersion(Date(front.dateTime.year, front.dateTime.month, front.dateTime.day));
+    }
 }
 
 /+
  + .pkt packet format handler
  + Provides PacketInput range
  +/
-class PktPacketInput : PacketInput
+final class PktPacketInput : PacketInput
 {
 	enum PktVersion : ushort
 	{
@@ -96,11 +116,13 @@ class PktPacketInput : PacketInput
 		SysTime startTime;
         PacketDump* _front;
         ubyte[] additionalData;
+        WowVersion clientBuild;
 	}
 
 
     override @property PacketDump front()
 	{
+        assert(_front !is null);
 		return *_front;
 	}
 
@@ -109,9 +131,11 @@ class PktPacketInput : PacketInput
 		return stream.empty();
 	}
 
-	override @property int getBuild()
+	override @property WowVersion getBuild()
 	{
-		return 0;
+        if (pktVersion == PktVersion.V1)
+            return super.getBuild();
+		return clientBuild;
 	}
 
 	private void readHeader()
@@ -138,14 +162,14 @@ class PktPacketInput : PacketInput
 			}
 			case PktVersion.V2_1:
 			{
-				stream.sread!ushort; // client build
+				clientBuild = cast(WowVersion)stream.sread!ushort; // client build
 				stream.sreadBytes(40); // session key
 				break;
 			}
 			case PktVersion.V2_2:
 			{
 				stream.sread!ubyte;                         // sniffer id
-				stream.sread!ushort;                       // client build
+				clientBuild = cast(WowVersion)stream.sread!ushort;                       // client build
 				stream.sreadBytes(4);                       // client locale
 				stream.sreadBytes(20);                      // packet key
 				stream.sreadBytes(64);                      // realm name
@@ -154,7 +178,7 @@ class PktPacketInput : PacketInput
 			case PktVersion.V3_0:
 			{
 				auto snifferId = stream.sread!ubyte;         // sniffer id
-				stream.sread!uint;             // client build
+				clientBuild = cast(WowVersion)stream.sread!uint;             // client build
 				stream.sreadBytes(4);                       // client locale
 				stream.sreadBytes(40);                      // session key
 				additionalLength = stream.sread!uint;
@@ -171,7 +195,7 @@ class PktPacketInput : PacketInput
 			case PktVersion.V3_1:
 			{
 				stream.sread!ubyte;                        // sniffer id
-				stream.sread!uint;             // client build
+				clientBuild = cast(WowVersion)stream.sread!uint;             // client build
 				stream.sreadBytes(4);                       // client locale
 				stream.sreadBytes(40);                      // session key
 				startTime = unixTimeToSysTime(stream.sread!uint); // start time
@@ -269,7 +293,7 @@ class PktPacketInput : PacketInput
  + .bin packet format handler
  + Provides PacketInput range
  +/
-class BinaryPacketInput : PacketInput
+final class BinaryPacketInput : PacketInput
 {
 	private InputStream stream;
 
@@ -285,6 +309,7 @@ class BinaryPacketInput : PacketInput
 
     override @property PacketDump front()
 	{
+        assert(_front !is null);
 		return *_front;
 	}
 	
@@ -302,11 +327,6 @@ class BinaryPacketInput : PacketInput
 	override @property bool empty()
 	{
 		return stream.empty();
-	}
-	
-	override @property int getBuild()
-	{
-		return 0;
 	}
 }
 
