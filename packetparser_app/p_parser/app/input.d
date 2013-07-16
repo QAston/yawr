@@ -1,7 +1,7 @@
 /+
  + Provides packet input ranges
  +/
-module packetparser.app.input;
+module p_parser.app.input;
 
 import std.range;
 import std.datetime;
@@ -13,7 +13,7 @@ import vibe.core.stream;
 import util.stream;
 import util.time;
 
-import packetparser.wowversion.packet_dump;
+import p_parser.dump;
 
 
 /+
@@ -188,7 +188,7 @@ class PktPacketInput : PacketInput
 		int opcode;
 		int length;
 		SysTime time;
-		packetparser.wowversion.packet_dump.Direction direction;
+		p_parser.dump.Direction direction;
 		ubyte[] data;
 		
 		uint cIndex = 0;
@@ -200,7 +200,7 @@ class PktPacketInput : PacketInput
 				{
 					opcode = stream.sread!ushort;
 					length = stream.sread!int;
-					direction = cast(packetparser.wowversion.packet_dump.Direction)stream.sread!byte;
+					direction = cast(p_parser.dump.Direction)stream.sread!byte;
 					time = unixTimeToSysTime(cast(core.stdc.time.time_t)stream.sread!ulong);
                     if (additionalData != null)
                     {
@@ -214,12 +214,12 @@ class PktPacketInput : PacketInput
 				case PktVersion.V2_1:
 				case PktVersion.V2_2:
 				{
-					direction = (stream.sread!ubyte == 0xff) ? packetparser.wowversion.packet_dump.Direction.s2c : packetparser.wowversion.packet_dump.Direction.c2s;
+					direction = (stream.sread!ubyte == 0xff) ? p_parser.dump.Direction.s2c : p_parser.dump.Direction.c2s;
 					time = unixTimeToSysTime(stream.sread!int);
 					stream.sread!int; // tick count
 					length = stream.sread!int;
 					
-					if (direction == packetparser.wowversion.packet_dump.Direction.s2c)
+					if (direction == p_parser.dump.Direction.s2c)
 					{
 						opcode = stream.sread!ushort;
 						data = stream.sreadBytes(length - 2);
@@ -235,7 +235,7 @@ class PktPacketInput : PacketInput
 				case PktVersion.V3_0:
 				case PktVersion.V3_1:
 				{
-					direction = (stream.sread!uint == 0x47534d53) ? packetparser.wowversion.packet_dump.Direction.s2c : packetparser.wowversion.packet_dump.Direction.c2s;
+					direction = (stream.sread!uint == 0x47534d53) ? p_parser.dump.Direction.s2c : p_parser.dump.Direction.c2s;
 					
 					if (pktVersion == PktVersion.V3_0)
 					{
@@ -293,7 +293,7 @@ class BinaryPacketInput : PacketInput
 		auto opcode = stream.sread!uint;
 		auto length = stream.sread!uint;
 		auto time = unixTimeToSysTime(stream.sread!int);
-		auto direction = cast(packetparser.wowversion.packet_dump.Direction)stream.sread!char();
+		auto direction = cast(p_parser.dump.Direction)stream.sread!char();
 		auto data = stream.sreadBytes(length);
 		
 		_front = new PacketDump(data, opcode, direction, time);

@@ -1,4 +1,4 @@
-module packetparser.wowversion.parser;
+module p_parser.parser;
 
 import std.range;
 import std.stdio;
@@ -8,8 +8,8 @@ import protocol.handler;
 import protocol.opcode;
 import protocol.packet;
 
-import packetparser.wowversion.packet_dump;
-import packetparser.wowversion.printer;;
+import p_parser.dump;
+import p_parser.printer;
 
 
 void parse(InputRange!PacketDump packets) nothrow

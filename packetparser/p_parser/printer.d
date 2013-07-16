@@ -1,4 +1,4 @@
-module packetparser.wowversion.printer;
+module p_parser.printer;
 
 import std.traits;
 

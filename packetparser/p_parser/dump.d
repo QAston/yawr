@@ -1,9 +1,9 @@
 /+
- + This module is an interface between packetparser_app and packetparser_wowversion dll.
+ + This module is an interface between packetparser_app and packetparser dll.
  + It should not contain global imports from the lib, interfacing should be minimal
  +/
 
-module packetparser.wowversion.packet_dump;
+module p_parser.dump;
 
 import std.datetime;
 
@@ -20,7 +20,7 @@ struct PacketDump {
 
 export void function (InputRange!PacketDump) nothrow getParser() 
 {
-    import packetparser.wowversion.parser;
+    import p_parser.parser;
     static assert(is(typeof(&parse) == typeof(return)));
     return &parse;
 }

@@ -1,4 +1,4 @@
-module packetparser.wowversion.dll;
+module p_parser.dll;
 
 import core.runtime;
 import std.c.windows.windows;

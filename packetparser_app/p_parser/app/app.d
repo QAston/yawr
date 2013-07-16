@@ -1,4 +1,4 @@
-module packetparser.app.app;
+module p_parser.app.app;
 
 import core.runtime;
 import std.c.windows.windows;
@@ -7,12 +7,12 @@ import std.algorithm;
 import std.range;
 import std.traits;
 
-import packetparser.app.input;
-import packetparser.wowversion.packet_dump;
+import p_parser.app.input;
+import p_parser.dump;
 
 import util.dll;
 
-mixin (importDynamically!(packetparser.wowversion.packet_dump));
+mixin (importDynamically!(p_parser.dump));
 
 import vibe.core.file;
 
@@ -23,7 +23,7 @@ int main(string[] args)
 
     writeln("Start Dynamic Link...\n");
 
-    HMODULE h = cast(HMODULE) Runtime.loadLibrary("yawr_packetparser_wowversion.dll");
+    HMODULE h = cast(HMODULE) Runtime.loadLibrary("yawr_packetparser.dll");
 
     if (h is null)
     {
@@ -31,9 +31,9 @@ int main(string[] args)
         return 1;
     }
 
-    FARPROC fp = GetProcAddress(h, mangledSymbol!(packetparser.wowversion.packet_dump.getParser));
+    FARPROC fp = GetProcAddress(h, mangledSymbol!(p_parser.dump.getParser));
 
-    pragma(msg, mangledSymbol!(packetparser.wowversion.packet_dump.getParser));
+    pragma(msg, mangledSymbol!(p_parser.dump.getParser));
 
     if (fp is null)
     {

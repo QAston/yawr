@@ -1,7 +1,7 @@
 {
-	"name": "yawr_packetparser_wowversion",
+	"name": "yawr_packetparser",
 	"description": "Yet Another Wowd Rewrite - a World of Warcraft gameserver implementation in D programming language",
-	"sourcePaths": ["packetparser"],
+	"sourcePaths": ["p_parser"],
 	"importPaths": ["../protocol", "../util"],
 	"dependencies": {
 		"yawr_protocol": {"version": "~master", "path": "../protocol"},

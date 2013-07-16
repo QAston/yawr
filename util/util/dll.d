@@ -10,5 +10,6 @@ string importDynamically(alias importedModule)()
 
 const(char)* mangledSymbol(alias symbol)()
 {
-    return ((symbol.mangleof)[1..$] ~ "\0").ptr;
+    static assert(((symbol.mangleof) ~ "\0").length < 128, "longer names won't be available in a library!!!");
+    return ((symbol.mangleof) ~ "\0").ptr;
 }
