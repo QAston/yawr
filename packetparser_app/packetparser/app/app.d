@@ -2,7 +2,7 @@ module packetparser.app.app;
 
 import core.runtime;
 import std.c.windows.windows;
-import core.stdc.stdio;
+import std.stdio;
 import std.algorithm;
 import std.range;
 import std.traits;
@@ -21,21 +21,23 @@ int main(string[] args)
     args.popFront;
     string[] files = args;
 
-    printf("Start Dynamic Link...\n");
+    writeln("Start Dynamic Link...\n");
 
-    HMODULE h = cast(HMODULE) Runtime.loadLibrary("mydll.dll");
+    HMODULE h = cast(HMODULE) Runtime.loadLibrary("yawr_packetparser_wowversion.dll");
 
     if (h is null)
     {
-        printf("error loading mydll.dll\n");
+        writeln("error loading mydll.dll\n");
         return 1;
     }
 
     FARPROC fp = GetProcAddress(h, mangledSymbol!(packetparser.wowversion.packet_dump.getParser));
 
+    pragma(msg, mangledSymbol!(packetparser.wowversion.packet_dump.getParser));
+
     if (fp is null)
     {
-        printf("error loading symbol getMyClass()\n");
+        writeln("error loading symbol getMyClass()\n");
         return 1;
     }
 
@@ -50,10 +52,10 @@ int main(string[] args)
 
     if (!Runtime.unloadLibrary(h))
     {
-        printf("error freeing mydll.dll\n");
+        writeln("error freeing mydll.dll\n");
         return 1;
 
     }
-    printf("End...\n");
+    writeln("End...\n");
     return 0;
 }

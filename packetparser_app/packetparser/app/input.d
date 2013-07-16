@@ -125,7 +125,6 @@ class PktPacketInput : PacketInput
 		else
 		{
 			pktVersion = PktVersion.V1; // pkt v1 is headerless
-            additionalData = marker;
 		}
 		
 		int additionalLength;
@@ -134,7 +133,7 @@ class PktPacketInput : PacketInput
 		{
 			case PktVersion.V1:
 			{
-                additionalData = marker;
+                additionalData = marker[];
 				break;
 			}
 			case PktVersion.V2_1:

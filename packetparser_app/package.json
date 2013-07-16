@@ -9,4 +9,5 @@
 	"dependencies": {
 		"vibe-d": {"version": "~master", "path": "../../vibe.d"},
 	},
+	"versions" : ["VibeCustomMain"],
 }

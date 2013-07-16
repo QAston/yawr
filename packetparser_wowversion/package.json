@@ -1,12 +1,17 @@
 {
 	"name": "yawr_packetparser_wowversion",
 	"description": "Yet Another Wowd Rewrite - a World of Warcraft gameserver implementation in D programming language",
-	"targetType": "library",
 	"sourcePaths": ["packetparser"],
 	"importPaths": ["../protocol", "../util"],
-	"dflags": ["-unittest"],
-	"versions" : ["VibeCustomMain", "WowVersionV4_3_4_15595"],
 	"dependencies": {
 		"yawr_protocol": {"version": "~master", "path": "../protocol"},
 	},
+    "configurations": [
+        {
+            "name": "library",
+            "targetType": "dynamicLibrary",
+			"versions" : ["VibeCustomMain", "WowVersionV4_3_4_15595"],
+			"dflags": ["-unittest", "-shared"],
+        },
+    ],
 }
