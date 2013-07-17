@@ -1,0 +1,19 @@
+{
+	"name": "yawr_wowdefs",
+	"description": "Library containing structures/enums common to all wow related tooling - part of Yet Another Wowd Rewrite project",
+	"targetType": "library",
+	"sourcePaths": ["wowdefs"],
+	"dflags": ["-unittest"],
+	"dependencies": {
+		"yawr_util": {"version": "~master", "path": "../util"},
+	},
+    "configurations": [
+        {
+            "name": "library",
+		},
+        {
+            "name": "wow15595",
+			"versions": ["WowVersionV4_3_4_15595"],
+		},
+	]
+}

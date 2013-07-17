@@ -3,7 +3,7 @@
  +/
 module protocol.opcode;
 
-import util.wow_version;
+import wowdefs.wow_version;
 import std.conv;
 
 enum UNKNOWN_OPCODE = 0x0000;

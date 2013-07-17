@@ -1,11 +1,19 @@
 {
 	"name": "yawr_protocol",
-	"description": "Yet Another Wowd Rewrite - a World of Warcraft gameserver implementation in D programming language",
+	"description": "Library defining wow client-server communication protocol - part of Yet Another Wowd Rewrite project",
 	"targetType": "library",
-	"sourcePaths": ["protocol", "../util"],
+	"sourcePaths": ["protocol"],
 	"dflags": ["-unittest"],
 	"dependencies": {
-		"vibe-d": {"version": "~master", "path": "../../vibe.d"}
+		"yawr_wowdefs": {"version": "~master", "path": "../wowdefs"},
 	},
-	"versions" : ["VibeCustomMain"],
+    "configurations": [
+        {
+            "name": "library",
+		},
+        {
+            "name": "wow15595",
+			"versions": ["WowVersionV4_3_4_15595"],
+		},
+	]
 }

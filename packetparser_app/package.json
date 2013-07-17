@@ -1,13 +1,12 @@
 {
 	"name": "yawr_packetparser_app",
-	"description": "Yet Another Wowd Rewrite - a World of Warcraft gameserver implementation in D programming language",
+	"description": "PacketParser app - translates given packet dumps into human readable output - part of Yet Another Wowd Rewrite project",
 	"targetType": "executable",
 	"sourcePaths": ["p_parser"],
-	"sourceFiles": ["../util/util/time.d", "../util/util/stream.d", "../util/util/dll.d", "../util/util/wow_versions.d"],
+	"sourceFiles": ["../wowdefs/wowdefs/wow_versions.d"],
 	"importPaths": ["../packetparser"],
 	"dflags": ["-unittest"],
 	"dependencies": {
-		"vibe-d": {"version": "~master", "path": "../../vibe.d"},
+		"yawr_util": {"version": "~master", "path": "../util"},
 	},
-	"versions" : ["VibeCustomMain"],
 }

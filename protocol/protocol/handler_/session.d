@@ -1,7 +1,7 @@
 module protocol.handler_.session;
 
 import protocol.opcode;
-import util.wow_version;
+import wowdefs.wow_version;
 import protocol.packet;
 
 @Handler!(Opcode.SMSG_AUTH_CHALLENGE)

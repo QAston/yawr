@@ -15,7 +15,7 @@ import util.time;
 
 import p_parser.dump;
 
-import util.wow_versions;
+import wowdefs.wow_versions;
 
 /+
  + Returns a PacketInput which handles reading from a file with given filename

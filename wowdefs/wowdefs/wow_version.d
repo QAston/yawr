@@ -1,9 +1,9 @@
 /+
  + this module sets up wowVersion enum based on WowVersionXXX identifiers passed to compiler
  +/
-module util.wow_version;
+module wowdefs.wow_version;
 
-public import util.wow_versions;
+public import wowdefs.wow_versions;
 
 import std.traits, std.typetuple, std.typecons;
 
@@ -15,7 +15,6 @@ private {
     mixin Versions versions;
 
     immutable string versionPrefix = "WowVersion";
-
 
     template checkVersion(alias name)
     {

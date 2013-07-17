@@ -22,9 +22,3 @@ const(char)* mangledSymbol(alias symbol)()
     static assert(((symbol.mangleof) ~ "\0").length < 128, "Too long symbol name - won't be available in a library");
     return ((symbol.mangleof) ~ "\0").ptr;
 }
-
-unittest {
-    struct A {
-    }
-    static assert(mangledSymbol!A == "S4util3dll15__unittestL26_2FZv1A\0");
-}

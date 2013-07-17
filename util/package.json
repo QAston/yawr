@@ -1,0 +1,11 @@
+{
+	"name": "yawr_util",
+	"description": "Library containing various utilities - part of Yet Another Wowd Rewrite project",
+	"targetType": "library",
+	"sourcePaths": ["util"],
+	"dflags": ["-unittest"],
+	"dependencies": {
+		"vibe-d": {"version": "~master", "path": "../../vibe.d"}
+	},
+	"versions" : ["VibeCustomMain"],
+}

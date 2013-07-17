@@ -1,4 +1,4 @@
-module util.wow_versions;
+module wowdefs.wow_versions;
 
 /+
  + Client build numbers which are used to identify versions of the game

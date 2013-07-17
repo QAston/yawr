@@ -1,6 +1,6 @@
-module protocol.updatefields;
+module wowdefs.updatefields;
 
-import util.wow_version;
+import wowdefs.wow_version;
 
 enum UFVisibilityFlags
 {

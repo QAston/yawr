@@ -18,7 +18,7 @@ import p_parser.app.input;
 import p_parser.dump;
 
 import util.dll;
-import util.wow_versions;
+import wowdefs.wow_versions;
 
 mixin (importDynamically!(p_parser.dump));
 
