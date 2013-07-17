@@ -73,7 +73,8 @@ enum WowVersion : ushort {
 import std.datetime;
 import std.typecons;
 
-private immutable Tuple!(WowVersion, Date)[] wowVersionDates = [tuple(WowVersion.V1_12_1_5875 , Date(2006, 9, 26)), 
+private immutable Tuple!(WowVersion, Date)[] wowVersionDates = [
+    tuple(WowVersion.V1_12_1_5875 , Date(2006, 9, 26)), 
     tuple(WowVersion.V2_0_1_6180 , Date(2006, 12, 5)),
     tuple(WowVersion.V2_0_3_6299 , Date(2007, 1, 9)),
     tuple(WowVersion.V2_0_6_6337 , Date(2007, 1, 23)),
@@ -148,4 +149,11 @@ WowVersion getWowVersion(Date date)
             return wowVersionDates[i - 1][0];
 
     return wowVersionDates[$-1][0];
+}
+
+///
+unittest {
+    assert(getWowVersion(Date(2012, 12, 3)) == WowVersion.V5_1_0a_16357);
+    assert(getWowVersion(Date(2010, 8, 29)) == WowVersion.V3_3_5a_12340);
+    assert(getWowVersion(Date(2003, 12, 3)) == WowVersion.Undefined);
 }

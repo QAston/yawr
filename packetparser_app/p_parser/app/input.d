@@ -211,7 +211,7 @@ final class PktPacketInput : PacketInput
 				{
 					additionalLength -= 8;
 
-					startTime = unixTimeToSysTime(stream.sread!uint);   // start time
+					startTime = unixTimeToSysTimeUTC(stream.sread!uint);   // start time
 					startTickCount = stream.sread!uint; // start tick count
 				}
 				stream.sreadBytes(additionalLength);
@@ -223,7 +223,7 @@ final class PktPacketInput : PacketInput
 				clientBuild = cast(WowVersion)stream.sread!uint;             // client build
 				stream.sreadBytes(4);                       // client locale
 				stream.sreadBytes(40);                      // session key
-				startTime = unixTimeToSysTime(stream.sread!uint); // start time
+				startTime = unixTimeToSysTimeUTC(stream.sread!uint); // start time
 				startTickCount = stream.sread!uint;     // start tick count
 				additionalLength = stream.sread!int;
 				stream.sreadBytes(additionalLength);
@@ -250,7 +250,7 @@ final class PktPacketInput : PacketInput
 					opcode = stream.sread!ushort;
 					length = stream.sread!int;
 					direction = cast(p_parser.dump.Direction)stream.sread!byte;
-					time = unixTimeToSysTime(cast(core.stdc.time.time_t)stream.sread!ulong);
+					time = unixTimeToSysTimeUTC(cast(core.stdc.time.time_t)stream.sread!ulong);
                     if (additionalData != null)
                     {
                         data = additionalData ~ stream.sreadBytes(length);
@@ -264,7 +264,7 @@ final class PktPacketInput : PacketInput
 				case PktVersion.V2_2:
 				{
 					direction = (stream.sread!ubyte == 0xff) ? p_parser.dump.Direction.s2c : p_parser.dump.Direction.c2s;
-					time = unixTimeToSysTime(stream.sread!int);
+					time = unixTimeToSysTimeUTC(stream.sread!int);
 					stream.sread!int; // tick count
 					length = stream.sread!int;
 					
@@ -288,7 +288,7 @@ final class PktPacketInput : PacketInput
 					
 					if (pktVersion == PktVersion.V3_0)
 					{
-						time = unixTimeToSysTime(stream.sread!int);
+						time = unixTimeToSysTimeUTC(stream.sread!int);
 						auto tickCount = stream.sread!uint;
 						if (startTickCount != 0)
 							time = startTime + core.time.dur!"msecs"(tickCount - startTickCount);
@@ -342,7 +342,7 @@ final class BinaryPacketInput : PacketInput
 	{
 		auto opcode = stream.sread!uint;
 		auto length = stream.sread!uint;
-		auto time = unixTimeToSysTime(stream.sread!int);
+		auto time = unixTimeToSysTimeUTC(stream.sread!int);
 		auto direction = cast(p_parser.dump.Direction)stream.sread!char();
 		auto data = stream.sreadBytes(length);
 		

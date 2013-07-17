@@ -3,12 +3,13 @@ module util.time;
 import std.datetime;
 import core.stdc.time;
 
-SysTime unixTimeToSysTime(time_t unixTime)
-{
-	return SysTime(unixTimeToStdTime(unixTime));
+/+
+ + Converts given unit time stamp to UTC SysTime
+ +/
+SysTime unixTimeToSysTimeUTC(time_t unixTime)
+out(result) {
+    assert(result.toUnixTime == unixTime);
 }
-
-time_t sysTimeToUnixTime(DateTime dateTime)
-{	
-	return SysTime(dateTime).toUnixTime();
+body {
+	return SysTime(unixTimeToStdTime(unixTime)).toUTC;
 }
