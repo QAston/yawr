@@ -22,8 +22,6 @@ import util.wow_versions;
 
 mixin (importDynamically!(p_parser.dump));
 
-import vibe.core.file;
-
 int main(string[] args)
 {
     args.popFront;
@@ -31,13 +29,18 @@ int main(string[] args)
 
     foreach (f; files)
     {
-        FileStream stream = openFile(f, FileMode.read);
-        PacketInput packets = new PktPacketInput(stream);
-        if (packets.empty())
-            writeln("");
-
-        auto parsePackets = getParseFunction(packets.getBuild());
-        (*parsePackets)(packets);
+        try {
+            PacketInput packets = getPacketInput(f);
+            if (!packets.empty())
+            {
+                auto parsePackets = getParseFunction(packets.getBuild());
+                (*parsePackets)(packets);
+            }
+        }
+        catch (Exception ex)
+        {
+            writeln("Error processing file: " ~ f ~ " Message: "~ ex.msg);
+        }
     }
 
     return 0;
@@ -58,26 +61,35 @@ body {
     import std.conv;
     return "yawr_packetparser_" ~ std.conv.to!string(wowVersion) ~ ".dll";
 }
-
 shared immutable(ParserModule)[int] parserModules;
+
+/+
+ + Returns a function which can parse packets in a way specific to given wowVersion
+ + Returns null if no module which can handle the version is found
+ +/
 
 immutable(ReturnType!getParser) getParseFunction(int wowVersion)
 in {
     assert(wowVersion != WowVersion.Undefined);
 }
+out (result) {
+    assert(result !is null);
+}
 body {
+    import std.conv;
     auto parserModule = wowVersion in parserModules;
     if (parserModule is null)
     {
         string libraryName = getModuleName(wowVersion);
         ParserModule newModule;
-        newModule.handler = cast(HMODULE) Runtime.loadLibrary(".dll");
+        newModule.handler = cast(HMODULE) Runtime.loadLibrary(libraryName);
         if (newModule.handler is null)
-            return null;
+            throw new Exception("Unsupported wowVersion: " ~ wowVersion.to!string ~". Could not load library: " ~ libraryName);
 
-        FARPROC fp = GetProcAddress(newModule.handler, mangledSymbol!(p_parser.dump.getParser));
+        auto symbol =  mangledSymbol!(p_parser.dump.getParser);
+        FARPROC fp = GetProcAddress(newModule.handler,symbol);
         if (fp is null)
-            throw new Exception("");
+            throw new Exception("Could not load symbol: "~ *symbol ~ " from library: " ~ libraryName);
 
         newModule.parseFunction = (cast(typeof(&getParser)) fp)();
 
@@ -94,6 +106,6 @@ shared static ~this()
     {
         auto result = Runtime.unloadLibrary(cast(void*)(prserModule.handler));
         if (!result)
-            throw new Exception("");
+            throw new Exception("Could not unload library: "~ getModuleName(wowVer));
     }
 }

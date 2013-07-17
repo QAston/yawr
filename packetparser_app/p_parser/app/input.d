@@ -17,6 +17,31 @@ import p_parser.dump;
 
 import util.wow_versions;
 
+/+
+ + Returns a PacketInput which handles reading from a file with given filename
+ +/
+PacketInput getPacketInput(string fileName)
+out (result) {
+    assert (result !is null);
+}
+body {
+    import std.string;
+    import vibe.core.file;
+    FileStream stream = openFile(fileName, FileMode.read);
+    if (fileName.endsWith(".pkt"))
+    {
+        return new PktPacketInput(stream);
+    }
+    else if (fileName.endsWith(".bin"))
+    {
+        return new BinaryPacketInput(stream);
+    }
+    else
+    {
+        throw new Exception("File: " ~ fileName ~ " has unknown file format");
+    }
+}
+
 
 /+
  + Basic type for packet input ranges
