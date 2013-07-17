@@ -1,3 +1,6 @@
+/+
+ + this module sets up wowVersion enum based on WowVersionXXX identifiers passed to compiler
+ +/
 module util.wow_version;
 
 public import util.wow_versions;

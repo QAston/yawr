@@ -5,7 +5,7 @@ import std.traits;
 import protocol.opcode;
 import protocol.handler;
 import std.typetuple;
-import util.attribute;
+import util.traits;
 
 string fieldsToString(T)(in T t, in string alignment="")
 {

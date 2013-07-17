@@ -10,19 +10,17 @@ import std.traits;
 import std.typetuple;
 import std.string;
 import std.conv;
-import util.attribute;
+import util.traits;
 
-struct HandlerEntry {
-    TypeInfo typeInfo;
-    void function(Packet!true) inputHandler;
-    void function(Packet!false) outputHandler;
-}
-
-template isHandlerStructPred(alias T)
+private template isHandlerStructPred(alias T)
 {
     enum isHandlerStructPred = T.stringof.startsWith("Handler!");//is (typeof(T) == Handler);
 }
 
+
+/+
+ + Checks if given symbol is a valid packet handler struct
+ +/
 template isHandler(alias name)
 {
     enum hasHandleFunction = __traits(compiles, name.init.handle!true(cast(Packet!true)null)) && __traits(compiles, name.init.handle!false(cast(Packet!false)null));
@@ -41,6 +39,9 @@ template HandlerWithOpcodes(alias packetHandlerSymbol, alias opcodesTuple)
     alias TypeTuple!(opcodesTuple) opcodes;
 }
 
+/+
+ + Returns handler-opcode pair in form of HandlerWithOpcodes template
+ +/
 template getHandlerWithOpcodes(alias packetHandlerSymbol)
 {
     template getHandlerOpcode(alias handlerSymbol)
@@ -48,6 +49,12 @@ template getHandlerWithOpcodes(alias packetHandlerSymbol)
         alias getHandlerOpcode = TypeTuple!(handlerSymbol.opcode);
     }
     alias getHandlerWithOpcodes = HandlerWithOpcodes!(packetHandlerSymbol, std.typetuple.staticMap!(getHandlerOpcode, std.typetuple.Filter!(isHandlerStructPred, __traits(getAttributes,packetHandlerSymbol))));
+}
+
+struct HandlerEntry {
+    TypeInfo typeInfo;
+    void function(Packet!true) inputHandler;
+    void function(Packet!false) outputHandler;
 }
 
 private static HandlerEntry[Opcode] handlers;
