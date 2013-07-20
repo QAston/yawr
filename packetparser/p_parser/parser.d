@@ -33,5 +33,10 @@ void parse(InputRange!PacketDump packets) nothrow
     }
     catch(Exception ex)
     {
+        try {
+            writeln("Error processing file: "~ ex.msg);
+        }
+        catch ( Exception ex) {
+        }
     }
 }
