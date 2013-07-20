@@ -132,6 +132,7 @@ immutable (Guid) create(ulong guid)
 }
 
 unittest {
+    import std.exception;
     mixin (test!((create)));
     assert (create(0) is null);
     assert (create(0x4280000000000004).type == GuidType.Item);
@@ -149,7 +150,7 @@ unittest {
     assert (create(0xF7334E2342342123).type == GuidType.Creature);
     assert (create(0xF1434E2342342123).type == GuidType.Pet);
     assert (create(0xF1534E2342342123).type == GuidType.Vehicle);
-    assert (create(0xF1634E2342342123).type == GuidType.Vehicle);
+    assertThrown!(GuidException)(create(0xF1634E2342342123));
 }
 
 /+
