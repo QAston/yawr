@@ -3,6 +3,7 @@
 	"description": "Library containing structures/enums common to all wow related tooling - part of Yet Another Wowd Rewrite project",
 	"targetType": "library",
 	"sourcePaths": ["wowdefs"],
+	"importPaths": ["."],
 	"dflags": ["-unittest"],
 	"dependencies": {
 		"yawr_util": {"version": "~master", "path": "../util"},
@@ -12,8 +13,10 @@
             "name": "library",
 		},
         {
-            "name": "wow15595",
-			"versions": ["WowVersionV4_3_4_15595"],
+            "name": "tests15595",
+			"targetType": "executable",
+			"dflags": ["-unittest", "-main"],
+			"versions": ["WowVersionV4_3_4_15595", "VibeCustomMain"],
 		},
 	]
 }

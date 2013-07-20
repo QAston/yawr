@@ -3,9 +3,20 @@
 	"description": "Library containing various utilities - part of Yet Another Wowd Rewrite project",
 	"targetType": "library",
 	"sourcePaths": ["util"],
+	"importPaths": ["."],
 	"dflags": ["-unittest"],
 	"dependencies": {
 		"vibe-d": {"version": "~master", "path": "../../vibe.d"}
 	},
+    "configurations": [
+        {
+            "name": "library",
+		},
+        {
+            "name": "tests",
+            "dflags": ["-unittest", "-main"],
+			"targetType": "executable",
+		},
+	],
 	"versions" : ["VibeCustomMain"],
 }

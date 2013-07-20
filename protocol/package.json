@@ -3,6 +3,7 @@
 	"description": "Library defining wow client-server communication protocol - part of Yet Another Wowd Rewrite project",
 	"targetType": "library",
 	"sourcePaths": ["protocol"],
+	"importPaths": ["."],
 	"dflags": ["-unittest"],
 	"dependencies": {
 		"yawr_wowdefs": {"version": "~master", "path": "../wowdefs"},
