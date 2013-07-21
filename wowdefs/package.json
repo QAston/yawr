@@ -15,8 +15,9 @@
         {
             "name": "tests15595",
 			"targetType": "executable",
-			"dflags": ["-unittest", "-main"],
-			"versions": ["WowVersionV4_3_4_15595", "VibeCustomMain"],
+			"dflags": ["-unittest"],
+			"versions": ["WowVersionV4_3_4_15595"],
+			"sourceFiles": ["../common/tests_main.d"],
 		},
 	]
 }

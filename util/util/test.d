@@ -1,5 +1,8 @@
 module util.test;
 
+/+
+ + Prints name of unittests and their result
+ +/
 string test(string name)() {
     return `import std.stdio;
         std.stdio.writefln(__FILE__~" line: %d"~": ` ~ name ~ ` test", __LINE__);

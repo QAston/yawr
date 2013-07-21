@@ -5,16 +5,21 @@
 	"sourcePaths": ["protocol"],
 	"importPaths": ["."],
 	"dflags": ["-unittest"],
+	"versions": ["VibeCustomMain"],
 	"dependencies": {
 		"yawr_wowdefs": {"version": "~master", "path": "../wowdefs"},
+		"vibe-d": {"version": "~master", "path": "../../vibe.d"},
 	},
     "configurations": [
         {
             "name": "library",
 		},
         {
-            "name": "wow15595",
+            "name": "tests15595",
+			"targetType": "executable",
+			"dflags": ["-unittest"],
 			"versions": ["WowVersionV4_3_4_15595"],
+			"sourceFiles": ["../common/tests_main.d"],
 		},
 	]
 }

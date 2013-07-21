@@ -1,6 +1,9 @@
 module protocol.packet;
 
 import vibe.stream.memory;
+import vibe.core.stream;
+
+import util.stream;
 
 import protocol.opcode;
 import std.array;
@@ -28,7 +31,6 @@ class Packet(bool input)
         import std.ascii, std.format;
         import std.array;
 
-        import util.stream;
         auto dump = appender!(dchar[]);
         
         dump.put("|-------------------------------------------------|---------------------------------|\n");

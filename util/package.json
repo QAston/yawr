@@ -5,18 +5,15 @@
 	"sourcePaths": ["util"],
 	"importPaths": ["."],
 	"dflags": ["-unittest"],
-	"dependencies": {
-		"vibe-d": {"version": "~master", "path": "../../vibe.d"}
-	},
     "configurations": [
         {
             "name": "library",
 		},
         {
             "name": "tests",
-            "dflags": ["-unittest", "-main"],
+            "dflags": ["-unittest"],
 			"targetType": "executable",
+			"sourceFiles": ["../common/tests_main.d"],
 		},
 	],
-	"versions" : ["VibeCustomMain"],
 }
