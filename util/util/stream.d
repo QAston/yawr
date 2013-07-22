@@ -41,7 +41,7 @@ static assert (bool.sizeof == 1);
 ubyte[] sreadBytes(INSTREAM)(INSTREAM stream, size_t size) if (isInStream!(INSTREAM))
 {
     ubyte[] data = new ubyte[size];
-    stream.read(data);
+    
     return data;
 }
 
@@ -94,13 +94,17 @@ private {
 	    void read(ubyte[] dst)
         {
             assert(data !is null && begin);
-            dst = data;
+            foreach(i, ref el; dst)
+            {
+                el = data[i];
+            }
         }
 
         void write(in ubyte[] bytes)
         {
             assert(data is null);
             data = bytes[].dup;
+            begin = false;
         }
 
         void seek(size_t pos)
