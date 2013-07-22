@@ -2,7 +2,6 @@
 	"name": "yawr_packetparser",
 	"description": "Library handling wow-version specific tasks of PacketParser app - part of Yet Another Wowd Rewrite project",
 	"sourcePaths": ["p_parser"],
-	"dflags": ["-unittest", "-shared"],
 	"dependencies": {
 		"yawr_protocol": {"version": "~master", "path": "../protocol"},
 	},
@@ -10,16 +9,27 @@
         {
             "name": "library",
 			"targetType": "dynamicLibrary",
+			"dflags": ["-unittest", "-shared"],
+			"versions" : ["PacketParserDLL"],
         },
         {
             "name": "wow15595",
-			"versions" : ["WowVersionV4_3_4_15595"],
 			"targetType": "dynamicLibrary",
+			"dflags": ["-unittest", "-shared"],
+			"versions" : ["WowVersionV4_3_4_15595", "PacketParserDLL"],
         },
         {
             "name": "wow12340",
-			"versions" : ["WowVersionV3_3_5a_12340"],
 			"targetType": "dynamicLibrary",
+			"dflags": ["-unittest", "-shared"],
+			"versions" : ["WowVersionV3_3_5a_12340", "PacketParserDLL"],
         },
+        {
+            "name": "tests15595",
+			"targetType": "executable",
+			"dflags": ["-unittest"],
+			"versions": ["WowVersionV4_3_4_15595"],
+			"sourceFiles": ["../common/tests_main.d"],
+		},
     ],
 }
