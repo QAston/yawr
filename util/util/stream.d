@@ -22,8 +22,8 @@ template isOutStream(T) {
 }
 
 /+
-    + Reads Integral/Char/Boolean/FloatingPoint from an INSTREAM
-    +/
+ + Reads Integral/Char/Boolean/FloatingPoint from an INSTREAM
+ +/
 T sread(T, INSTREAM, Endian endianness = Endian.littleEndian)(INSTREAM s) 
 	if (isInStream!(INSTREAM) && (isIntegral!T || isSomeChar!T || isBoolean!T || isFloatOrDouble!T))
 {

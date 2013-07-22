@@ -26,8 +26,14 @@ template isHandler(alias name)
     enum hasHandleFunction = __traits(compiles, name.init.handle!true(cast(Packet!true)null)) && __traits(compiles, name.init.handle!false(cast(Packet!false)null));
 
     static if (std.typetuple.Filter!(isHandlerStructPred, __traits(getAttributes,name)).length != 0) {
-        static assert(hasHandleFunction, "Type " ~ fullyQualifiedName!name ~ " has Handler attribute (is marked as packet handler), but it doesn't have void handle(bool INPUT) function!");
-        enum isHandler = true;
+        static if (!hasHandleFunction)
+        {
+            pragma(msg, "Type " ~ fullyQualifiedName!name ~ " has Handler attribute (is marked as packet handler), but it doesn't have void handle(bool INPUT) function!");
+            alias name.init.handle!true test;
+            enum isHandler = false;
+        }
+        else
+            enum isHandler = true;
     }
     else
         enum isHandler = false;

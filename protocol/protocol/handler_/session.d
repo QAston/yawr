@@ -36,13 +36,10 @@ struct SmsgAuthChallenge {
     }
 }
 
-alias ushort ClientBuild;
-
-
 @Handler!(Opcode.CMSG_AUTH_SESSION)
 struct AuthSession {
     byte[20] sha;
-    ClientBuild build;
+    WowVersion build;
     string accountName;
     uint clientSeed;
     //ClientAddonsList!(true) clientAddonsList;
