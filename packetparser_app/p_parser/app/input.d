@@ -17,6 +17,21 @@ import p_parser.dump;
 
 import wowdefs.wow_versions;
 
+ubyte[] threadLocalBuffer;
+
+static this()
+{
+    threadLocalBuffer = new ubyte[1024*1024];
+}
+
+/+
+ + returns memory from reusable pool
+ +/
+ubyte[] getBuffer(size_t size) {
+    assert(size < threadLocalBuffer.length);
+    return threadLocalBuffer[0..size];
+}
+
 /+
  + Returns a PacketInput which handles reading from a file with given filename
  +/
@@ -257,7 +272,10 @@ final class PktPacketInput : PacketInput
                         additionalData = null;
                     }
                     else
-                        data = stream.sreadBytes(length);
+                    {
+                        data = getBuffer(length);
+                        stream.read(data);
+                    }
 					break;
 				}
 				case PktVersion.V2_1:
@@ -271,12 +289,14 @@ final class PktPacketInput : PacketInput
 					if (direction == p_parser.dump.Direction.s2c)
 					{
 						opcode = stream.sread!ushort;
-						data = stream.sreadBytes(length - 2);
+                        data = getBuffer(length - 2);
+                        stream.read(data);
 					}
 					else
 					{
 						opcode = stream.sread!int;
-						data = stream.sreadBytes(length - 4);
+                        data = getBuffer(length - 4);
+                        stream.read(data);
 					}
 					
 					break;
@@ -304,7 +324,8 @@ final class PktPacketInput : PacketInput
 					length = stream.sread!int;
                     stream.sreadBytes(additionalSize);
 					opcode = stream.sread!int;
-                    data = stream.sreadBytes(cast(size_t)(length - 4));
+                    data = getBuffer(cast(size_t)(length - 4));
+                    stream.read(data);
 					break;
 				}
 			}
@@ -344,7 +365,8 @@ final class BinaryPacketInput : PacketInput
 		auto length = stream.sread!uint;
 		auto time = unixTimeToSysTimeUTC(stream.sread!int);
 		auto direction = cast(p_parser.dump.Direction)stream.sread!char();
-		auto data = stream.sreadBytes(length);
+        auto data = getBuffer(cast(size_t)(length));
+        stream.read(data);
 		
 		_front = new PacketDump(data, opcode, direction, time);
 	}
