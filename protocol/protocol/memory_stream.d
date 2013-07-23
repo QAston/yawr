@@ -7,18 +7,13 @@ class BitMemoryStream {
     private {
         MemoryStream data;
         // buffer for streaming in bits
-        uint bitBuffer;
-        uint bitBufferPos;
-        bool bitsWritten;
+        ubyte bitBuffer;
+        ubyte bitBufferPos;
     }
     void flushBits()
     {
-        if (bitsWritten)
-            data.swrite!ubyte(cast(ubyte)bitBuffer);
         bitBuffer = 0;
         bitBufferPos = 0;
-
-        bitsWritten = false;
     }
     this(ubyte[] data, bool writable = true, size_t initial_size = size_t.max)
     {
@@ -52,9 +47,11 @@ class BitMemoryStream {
     
     void writeBit(bool bit)
     {
-        import std.stdio;
-        bitBuffer |= (bit ? 1 : 0) << cast(uint)((7 - bitBufferPos));
-        bitsWritten = true;
+        if (bitBufferPos != 0)
+            data.seek(data.tell-1);
+
+        bitBuffer |= (bit ? 1 : 0) << (7 - bitBufferPos);
+        data.swrite!ubyte(bitBuffer);
 
         ++bitBufferPos;
 
@@ -135,27 +132,28 @@ unittest {
 
     stream.writeBit(false);
     stream.writeBit(true);
-    assert(stream.tell == 0);
+    assert(stream.tell == 1);
     stream.swrite!byte(6);
     assert(stream.tell == 2);
     stream.writeBit(true);
     stream.writeBit(false);
     stream.writeBit(true);
-    assert(stream.tell == 2);
+    assert(stream.tell == 3);
     stream.swrite!byte(20);
     assert(stream.tell == 4);
     stream.writeBit(true);
-    assert(stream.tell == 4);
+    assert(stream.tell == 5);
     stream.writeBit(true);
     stream.writeBit(false);
     stream.writeBit(true);
     stream.writeBit(true);
     stream.writeBit(true);
-    stream.writeBit(false);
-    assert(stream.tell == 4);
     stream.writeBit(false);
     assert(stream.tell == 5);
     stream.writeBit(false);
+    assert(stream.tell == 5);
+    stream.writeBit(false);
+    assert(stream.tell == 6);
     stream.seek(0);
     assert(stream.readBit == false);
     assert(stream.readBit == true);

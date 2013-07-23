@@ -189,7 +189,7 @@ struct Handler(Opcode op)
 
 // packet read/write primitives
 /+
- + Reads/Writes data as bits of given integral type, BITS must be less than bits in type
+ + Reads/Writes data as bits of given integral type, BITS(number of bits) must be less than bits in type
  +/
 template asBits(byte BITS)
 {
@@ -435,9 +435,11 @@ unittest {
         }
         mixin (test!("packetparser - asBits"));
 
-        uint s = 1;
-        valTest!(uint, asBits!1)(s);
+        valTest!(uint, asBits!1)(1);
+        valTest!(uint, asBits!1)(0);
+        valTest!(uint, asBits!4)(15);
+        assertThrown!(Throwable)(valTest!(uint, asBits!3)(15));
 
-        //valTest!(A, asBits!4)(A.a);
+        valTest!(A, asBits!4)(A.a);
     }
 }
