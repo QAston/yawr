@@ -1,8 +1,6 @@
 module protocol.packet;
 
-import vibe.stream.memory;
-import vibe.core.stream;
-
+import protocol.memory_stream;
 import util.stream;
 
 import protocol.opcode;
@@ -15,7 +13,6 @@ class Packet(bool input)
     enum isInput = input;
     enum isOutput = !input;
 
-    MemoryStream data;
     Opcode opcode;
 
     /+
@@ -24,66 +21,18 @@ class Packet(bool input)
     +/ 
     this(ubyte[] data, uint opcode)
     {
-        this.data = new MemoryStream(data, isOutput);
+        this.data = new BitMemoryStream(data, isOutput);
         // invalid opcode values will be still stored in this.opcode
         this.opcode = cast(Opcode)opcode;
     }
 
-    public string toHex()
+    BitMemoryStream data;
+
+
+    string toHex()
     {
-        ulong oldpos = data.tell;
-        scope(exit)
-            data.seek(oldpos);
-
-        import std.ascii, std.format;
-        import std.array;
-
-        auto dump = appender!(dchar[]);
-        
-        dump.put("|-------------------------------------------------|---------------------------------|\n");
-        dump.put("| 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | 0 1 2 3 4 5 6 7 8 9 A B C D E F |\n");
-        dump.put("|-------------------------------------------------|---------------------------------|\n");
-
-        for (auto i = 0; i < data.size(); i += 16)
-        {
-            auto text = appender!(dchar[]);
-            auto hex = appender!(dchar[]);
-            text.put("| ");
-            hex.put("| ");
-            
-            for (auto j = 0; j < 16; j++)
-            {
-                if (j + i < data.size())
-                {
-                    data.seek(j + i);
-                    auto val = data.sread!ubyte;
-                    formattedWrite(hex , "%2X ", val);
-
-                    if (val.isPrintable)
-                        text.put(val);
-                    else
-                        text.put(".");
-                    
-                    text.put(" ");
-                }
-                else
-                {
-                    hex.put("   ");
-                    text.put("  ");
-                }
-            }
-            
-
-            hex.put(text.data ~ "|");
-            hex.put("\n");
-            dump.put(hex.data);
-        }
-
-        
-        dump.put("|-------------------------------------------------|---------------------------------|");
-        return std.conv.to!string(dump.data());
+        return data.toHex();
     }
-   
 
     /+
      + Behavior depends on whenever in input or output mode
@@ -177,6 +126,15 @@ class Packet(bool input)
         }
     }
 
+    void valArray(alias Format = identity, T: U[], U)(ref T value)
+    {
+        foreach(ref c; value)
+        {
+            val!(Format)(c);
+        }
+    }
+
+
     /*void valTail(alias Format = identity, T: U[], U)(ref T value, int delegate(ref uint) dg)
     {
 
@@ -230,10 +188,44 @@ struct Handler(Opcode op)
 }
 
 // packet read/write primitives
+/+
+ + Reads/Writes data as bits of given integral type, BITS must be less than bits in type
+ +/
+template asBits(byte BITS)
+{
+    import std.conv;
+    import std.bitmanip;
+
+    void write(VAL)(Packet!false p, auto ref VAL val) if (isIntegral!VAL)
+    {
+        // not equal because of signed problems
+        static assert(VAL.sizeof * 8 > BITS);
+        for (byte i = BITS - 1; i >= 0; --i)
+            p.data.writeBit((val & (1 << i)) != 0);
+    }
+    VAL read(VAL)(Packet!true p)  if (isIntegral!VAL)
+    {
+        // not equal because of signed problems
+        static assert(VAL.sizeof * 8 > BITS);
+
+        static if (is(VAL BASE == enum))
+        {
+            BASE value = 0;
+        }
+        else 
+        {
+            VAL value = 0;
+        }
+        for (byte i = BITS - 1; i >= 0; --i)
+            if (p.data.readBit())
+                value |= (1 << i);
+
+        return cast(VAL)value;
+    }
+}
+
 template as(T)
 {
-    import vibe.core.stream;
-    import util.stream;
     import std.conv;
     
     void write(VAL)(Packet!false p, auto ref VAL val) if (is (typeof(identity.write(p, val.to!T)) == void))
@@ -248,7 +240,6 @@ template as(T)
 
 static struct identity
 {
-    import vibe.core.stream;
     import util.stream;
     
     static void write(VAL)(Packet!false p, auto ref VAL val) if (is (typeof(p.data.swrite!VAL(val))== void))
@@ -273,8 +264,6 @@ static struct identity
 
 static struct asCString
 {
-    import vibe.core.stream;
-    import util.stream;
     import std.conv;
     import std.traits;
 
@@ -298,32 +287,6 @@ static struct asCString
                 break;
             }
             cstr.put(c);
-        }
-
-        return cstr.data.to!VAL();
-    }
-}
-
-static struct asArray(T)
-{
-    import vibe.core.stream;
-    import util.stream;
-    import std.conv;
-    import std.array;
-
-    static void write(VAL)(Packet!false p, ref VAL val)
-    {
-        foreach(ref c; val)
-        {
-            p.data.swrite!T(c);
-        }
-    }
-    static VAL read(VAL)(Packet!true p)
-    {
-        auto cstr = appender!(T[]);
-        foreach(ref c; val)
-        {
-            cstr.put(p.data.sread!T(c));
         }
 
         return cstr.data.to!VAL();
@@ -463,4 +426,18 @@ unittest {
         valTest(s);
     }
 
+    {
+
+        enum A {
+            a = 0,
+            b = 1,
+            c = 2,
+        }
+        mixin (test!("packetparser - asBits"));
+
+        uint s = 1;
+        valTest!(uint, asBits!1)(s);
+
+        //valTest!(A, asBits!4)(A.a);
+    }
 }
