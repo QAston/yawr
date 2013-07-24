@@ -11,6 +11,7 @@ import protocol.session;
 
 import wowdefs.wow_version;
 
+
 class Packet(bool input)
 {
     enum isInput = input;
@@ -115,7 +116,7 @@ class Packet(bool input)
             }
             else
             {
-                value = new U[cast(size_t)Format.read!COUNTER_TYPE(this)];
+                value = new U[cast(size_t)(Format.read!(COUNTER_TYPE)(this))];
             }
         }
         else
@@ -162,10 +163,50 @@ class Packet(bool input)
      + 
      + 
      +/
-    void skip(T, alias Format = identity)()
+    T skip(T, alias Format = identity)()
     {
         T t;
         val!Format(t);
+        return t;
+    }
+
+    /+
+     + Reads/Writes compressed data from inside del to a packet
+     + Format: [optional compressed size][decompressed size][compressed data]
+     + Params: 
+     +  - DEFLATE_STREAM - packet is part of deflate stream
+     +  - WITH_SIZE - write/read compressed size of data
+     +/
+    void deflateBlock(bool DEFLATE_STREAM, bool WITH_SIZE = true)(void delegate() del)
+    {
+        static if (WITH_SIZE)
+        {
+            uint compressedSize;
+            val(compressedSize);
+            compressedSize -= 4;
+        }
+
+        uint uncompressedSize;
+        val(uncompressedSize);
+
+        static if (WITH_SIZE)
+            auto compressedData = data.sreadBytes(cast(size_t)compressedSize);
+        else
+            auto compressedData = data.sreadBytes(cast(size_t)(data.size - data.tell));
+
+        import util.zlib;
+        static if (wowVersion >= WowVersion.V4_3_0_15005 && DEFLATE_STREAM)
+             const(void)[] readBuff = session.uncompressStream.uncompress(cast(const(void)[])compressedData, uncompressedSize);
+        else
+            const(void)[] readBuff = uncompress(cast(const(void)[])compressedData, uncompressedSize);
+
+        auto oldStream = this.data;
+
+        this.data = new BitMemoryStream(cast(ubyte[])(readBuff.dup), isOutput);
+
+        del();
+
+        this.data = oldStream;
     }
 }
 

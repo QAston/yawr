@@ -40,9 +40,9 @@ struct SmsgAuthChallenge {
 struct AuthSession {
     byte[20] sha;
     WowVersion build;
-    string accountName;
+    char[] accountName;
     uint clientSeed;
-    //ClientAddonsList!(true) clientAddonsList;
+    ClientAddonsList!(true) clientAddonsList;
 
     void handle(bool INPUT)(Packet!INPUT p)
     {
@@ -70,64 +70,49 @@ struct AuthSession {
         p.val(sha[0]);
         p.val(sha[1]);
         p.val(sha[11]);
-        p.val!(as!ushort)(clientSeed);
+        p.val!(as!uint)(clientSeed);
         p.val(sha[2]);
         p.skip!uint;
         p.val(sha[14]);
         p.val(sha[13]);
 
-       // clientAddonsList.val;
+        p.val(clientAddonsList);
 
-        p.skip!byte;
+        p.skip!(byte, asBits!(1));
 
-        //accountName.valCount(asBits(12));
-        //accountName.val;
+        p.valCount!(uint, asBits!(12))(accountName);
+
+        p.valArray(accountName);
     }
 }
 
-
-
 struct Addon {
-    // cstring
     string name;
     bool enabled;
     int crc;
-    // unknown field
-    //uint unknown;
+    uint unknown;
 }
-/*
+
 alias uint Time;
 struct ClientAddonsList(bool valDeflatedSize) {
     Addon[] addons;
 
     Time time;
 
-    void handle()
+    void handle(bool INPUT)(Packet!INPUT p)
     {
         // options: deflate stream, write deflated size
-        deflatedBlock!(true, valDeflatedSize)((){
-            static if (wowVersion >= V3_0_8_9464)
-            {
-                addons.valCount;
+        p.deflateBlock!(true, valDeflatedSize)((){
+            p.valCount!(uint)(addons);
 
-                addons.valArray((Addon a) {
-                    a.name.val(asCstring);
-                    a.enabled.val;
-                    a.crc.val;
-                    skip!int;
-                }, asRemainingData());
-
-                time.val;
-            }
-            else
+            foreach(ref addon; addons)
             {
-                addons.valArray((Addon a) {
-                    a.name.val(asCstring);
-                    a.enabled.val;
-                    a.crc.val;
-                    skip!int;
-                }, asRemainingData());
+                p.val!(asCString)(addon.name);
+                p.val(addon.enabled);
+                p.val(addon.crc);
+                p.val(addon.unknown);
             }
+            p.val(time);
         });
     }
-}*/
+}

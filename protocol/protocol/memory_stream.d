@@ -50,7 +50,8 @@ class BitMemoryStream : RandomAccessStream{
         if (bitBufferPos == 0)
             bitBuffer = data.sread!ubyte;
 
-        auto val = ((bitBuffer >>> (7 - bitBufferPos++)) & 1) != 0;
+        auto val = ((bitBuffer >>> (7 - bitBufferPos)) & 1) != 0;
+        bitBufferPos++;
         if (bitBufferPos == 8)
             flushBits();
         return val;

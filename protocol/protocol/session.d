@@ -1,6 +1,6 @@
 module protocol.session;
 
-import std.zlib;
+import util.zlib;
 
 import wowdefs.wow_version;
 
