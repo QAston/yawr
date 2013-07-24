@@ -106,7 +106,7 @@ class Packet(bool input)
      + Parameters:
      + Format - template functions which handles read/write to stream
      +/
-    void valCount(COUNTER_TYPE = ubyte, alias Format = identity, T: U[], U)(ref T value) if (isIntegral!COUNTER_TYPE && isDynamicArray!T)
+    void valCount(COUNTER_TYPE, alias Format = identity, T: U[], U)(ref T value) if (isIntegral!COUNTER_TYPE && isDynamicArray!T)
     {
         static if (isInput)
         {
@@ -179,34 +179,69 @@ class Packet(bool input)
      +/
     void deflateBlock(bool DEFLATE_STREAM, bool WITH_SIZE = true)(void delegate() del)
     {
-        static if (WITH_SIZE)
+        static if (isInput)
         {
-            uint compressedSize;
-            val(compressedSize);
-            compressedSize -= 4;
+            static if (WITH_SIZE)
+            {
+                uint compressedSize;
+                val(compressedSize);
+                compressedSize -= 4;
+            }
+
+            uint uncompressedSize;
+            val(uncompressedSize);
+
+            static if (WITH_SIZE)
+                auto compressedData = data.sreadBytes(cast(size_t)compressedSize);
+            else
+                auto compressedData = data.sreadBytes(cast(size_t)(data.size - data.tell));
+
+            import util.zlib;
+            static if (wowVersion >= WowVersion.V4_3_0_15005 && DEFLATE_STREAM)
+                 const(void)[] readBuff = session.uncompressStream.uncompress(cast(const(void)[])compressedData, uncompressedSize);
+            else
+                const(void)[] readBuff = uncompress(cast(void[])compressedData, uncompressedSize);
+
+            auto oldStream = this.data;
+
+            this.data = new BitMemoryStream(cast(ubyte[])(readBuff.dup), isOutput);
+
+            del();
+
+            if (data.tell != data.size)
+                throw new PacketException("Decompressed data was not fully read");
+
+            this.data = oldStream;
         }
-
-        uint uncompressedSize;
-        val(uncompressedSize);
-
-        static if (WITH_SIZE)
-            auto compressedData = data.sreadBytes(cast(size_t)compressedSize);
         else
-            auto compressedData = data.sreadBytes(cast(size_t)(data.size - data.tell));
+        {
+            auto oldPos = data.tell;
+            del();
+            auto newPos = data.tell;
+            uint uncompressedSize = cast(uint)(newPos - oldPos);
+            data.seek(oldPos);
 
-        import util.zlib;
-        static if (wowVersion >= WowVersion.V4_3_0_15005 && DEFLATE_STREAM)
-             const(void)[] readBuff = session.uncompressStream.uncompress(cast(const(void)[])compressedData, uncompressedSize);
-        else
-            const(void)[] readBuff = uncompress(cast(const(void)[])compressedData, uncompressedSize);
+            auto uncompressedData = cast(const(void)[])data.sreadBytes(uncompressedSize);
 
-        auto oldStream = this.data;
+            import util.zlib;
+            static if (wowVersion >= WowVersion.V4_3_0_15005 && DEFLATE_STREAM)
+            {
+                const(void)[] compressedBuff = session.compressStream.compress(uncompressedData);
+                compressedBuff~= session.compressStream.flush(Z_SYNC_FLUSH);
+            }
+            else
+                const(void)[] compressedBuff = compress(uncompressedData);
 
-        this.data = new BitMemoryStream(cast(ubyte[])(readBuff.dup), isOutput);
+            data.seek(oldPos);
+            static if (WITH_SIZE)
+            {
+                uint compressedSize = cast(uint)compressedBuff.length + 4;
+                val(compressedSize);
+            }
+            val(uncompressedSize);
 
-        del();
-
-        this.data = oldStream;
+            data.write(cast(ubyte[])compressedBuff);
+        }
     }
 }
 
@@ -506,5 +541,52 @@ unittest {
         assertThrown!(Throwable)(valTest!(uint, asBits!3)(15));
 
         valTest!(A, asBits!4)(A.a);
+    }
+
+    void valTestDeflate(bool STREAM, bool WRITE_SIZE)()
+    {
+        struct Addon {
+            string name;
+            bool enabled;
+            int crc;
+            uint unknown;
+        }
+
+        auto addon = Addon("asd", true, 123, 5);
+        size_t size;
+
+        {
+            auto output = new Packet!false(buffer, 0, new Session());
+            output.deflateBlock!(STREAM, WRITE_SIZE)((){
+                output.val!(asCString)(addon.name);
+                output.val(addon.enabled);
+                output.val(addon.crc);
+                output.val(addon.unknown);
+            });
+            writeln(output.data.toHex());
+            size = cast(size_t)output.data.tell;
+        }
+
+        Addon readValue;
+        {
+            auto input = new Packet!true(buffer[0..size], 0, new Session());
+            input.deflateBlock!(STREAM, WRITE_SIZE)((){
+                input.val!(asCString)(readValue.name);
+                input.val(readValue.enabled);
+                input.val(readValue.crc);
+                input.val(readValue.unknown);
+            });
+        }
+        assert(addon == readValue);
+    }
+
+    {
+        mixin (test!("packetparser - deflateBlock"));
+
+        valTestDeflate!(false, false)();
+        valTestDeflate!(false, true)();
+        
+        valTestDeflate!(true, true)();
+        valTestDeflate!(true, false)();
     }
 }

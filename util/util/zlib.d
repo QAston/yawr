@@ -492,7 +492,8 @@ public:
             inited = 1;
         }
 
-        destbuf = new ubyte[outSize];
+        destbufsize = outSize;
+        destbuf = new ubyte[zs.avail_in * 2 + destbufsize];
         zs.next_out = destbuf.ptr;
         zs.avail_out = to!uint(destbuf.length);
 
