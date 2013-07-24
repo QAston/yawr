@@ -18,6 +18,19 @@ string fieldsToString(T)(in T t, in string alignment="")
         str.put(t);
         str.put("\n");
     }
+    else static if (is(T : U[], U) && isSomeChar!U)
+    {
+        str.put(alignment);
+        foreach(i, element; t)
+        {
+            put(element);
+        }
+        str.put("\n");
+    }
+    else static if (is(T == Opcode))
+    {
+
+    }
     else static if (is(T BASE == enum))
     {
         str.put(alignment);
@@ -36,7 +49,10 @@ string fieldsToString(T)(in T t, in string alignment="")
     else static if (isForwardRange!T || isArray!T)
     {
         static if (isForwardRange!T)
-            t = t.save;
+            auto range = t.save;
+        else
+            auto range = t;
+
         foreach(i, element; t)
         {
             str.put(alignment);
