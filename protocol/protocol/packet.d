@@ -1,12 +1,15 @@
 module protocol.packet;
 
-import protocol.memory_stream;
+import std.array;
+import std.typecons;
+
 import util.stream;
 
+import protocol.memory_stream;
 import protocol.opcode;
-import std.array;
+import protocol.session;
 
-import std.typecons;
+import wowdefs.wow_version;
 
 class Packet(bool input)
 {
@@ -19,14 +22,16 @@ class Packet(bool input)
         Prarams:
             data - for output packets must be capable of holding all the data, for inputs must have exact size
     +/ 
-    this(ubyte[] data, uint opcode)
+    this(ubyte[] data, uint opcode, Session session)
     {
         this.data = new BitMemoryStream(data, isOutput);
         // invalid opcode values will be still stored in this.opcode
         this.opcode = cast(Opcode)opcode;
+        this.session = session;
     }
 
     BitMemoryStream data;
+    Session session;
 
 
     string toHex()
@@ -300,9 +305,9 @@ unittest {
     ubyte buffer[] = new ubyte[600];
     void valTest(T, alias Format = identity)(T value)
     {
-        auto output = new Packet!false(buffer, 0);
+        auto output = new Packet!false(buffer, 0, new Session());
         output.val!(Format)(value);
-        auto input = new Packet!true(buffer, 0);
+        auto input = new Packet!true(buffer, 0, new Session());
         T readValue;
         input.val!(Format)(readValue);
         assert(value == readValue);
@@ -321,10 +326,10 @@ unittest {
 
     void valTestNullable(T, alias Format = identity)(T value)
     {
-        auto output = new Packet!false(buffer, 0);
+        auto output = new Packet!false(buffer, 0, new Session());
         if (output.valIs!(Format)(value))
             output.val!(Format)(value);
-        auto input = new Packet!true(buffer, 0);
+        auto input = new Packet!true(buffer, 0, new Session());
         T readValue;
         if (input.valIs!(Format)(readValue))
             input.val!(Format)(readValue);
@@ -336,17 +341,17 @@ unittest {
 
     void valTestNullableError1(T, alias Format = identity)(T value)
     {
-        auto output = new Packet!false(buffer, 0);
+        auto output = new Packet!false(buffer, 0, new Session());
         if (output.valIs!(Format)(value))
             output.val!(Format)(value);
-        auto input = new Packet!true(buffer, 0);
+        auto input = new Packet!true(buffer, 0, new Session());
         T readValue;
         input.val!(Format)(readValue);
     }
 
     void valTestNullableError2(T, alias Format = identity)(T value)
     {
-        auto output = new Packet!false(buffer, 0);
+        auto output = new Packet!false(buffer, 0, new Session());
         output.val!(Format)(value);
     }
 
@@ -364,13 +369,13 @@ unittest {
 
     void valTestDynArray(COUNTER_TYPE = byte, alias Format = identity, T)(T value)
     {
-        auto output = new Packet!false(buffer, 0);
+        auto output = new Packet!false(buffer, 0, new Session());
         output.valCount!(COUNTER_TYPE, Format)(value);
         foreach(ref el; value)
         {
             output.val!(Format)(el);
         }
-        auto input = new Packet!true(buffer, 0);
+        auto input = new Packet!true(buffer, 0, new Session());
         T readVal;
         input.valCount!(COUNTER_TYPE, Format)(readVal);
         foreach(ref el; readVal)

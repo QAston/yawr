@@ -331,7 +331,7 @@ final class PktPacketInput : PacketInput
 			}
 		}
 		
-		_front = new PacketDump(data, opcode, direction, time);
+		_front = new PacketDump(data, opcode, direction, time, cIndex);
 	}
 }
 

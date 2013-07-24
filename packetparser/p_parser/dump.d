@@ -16,6 +16,7 @@ struct PacketDump {
     uint opcode;
 	Direction direction;
 	SysTime dateTime;
+    uint sessionId;
 }
 
 export void function (InputRange!PacketDump) nothrow getParser() 
