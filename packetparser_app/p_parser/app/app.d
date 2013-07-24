@@ -20,7 +20,8 @@ import p_parser.dump;
 import util.dll;
 import wowdefs.wow_versions;
 
-mixin (importDynamically!(p_parser.dump));
+version(PacketParserDLL)
+    mixin (importDynamically!(p_parser.dump));
 
 int main(string[] args)
 {
@@ -46,7 +47,8 @@ int main(string[] args)
     return 0;
 }
 
-
+version(PacketParserDLL)
+{
 struct ParserModule {
 
     HMODULE handler;
@@ -65,9 +67,7 @@ shared immutable(ParserModule)[int] parserModules;
 
 /+
  + Returns a function which can parse packets in a way specific to given wowVersion
- + Returns null if no module which can handle the version is found
  +/
-
 immutable(ReturnType!getParser) getParseFunction(int wowVersion)
 in {
     assert(wowVersion != WowVersion.Undefined);
@@ -108,4 +108,24 @@ shared static ~this()
         if (!result)
             throw new Exception("Could not unload library: "~ getModuleName(wowVer));
     }
+}
+}
+else
+{
+/+
+ + Returns a function which can parse packets in a way specific to given wowVersion
+ +/
+immutable(ReturnType!getParser) getParseFunction(int wowVersion)
+in {
+    assert(wowVersion != WowVersion.Undefined);
+}
+out (result) {
+    assert(result !is null);
+}
+body {
+    import wowdefs.wow_version;
+    static if (wowVersion != wowdefs.wow_version.wowVersion)
+        throw new Exception("Unsupported wowVersion: " ~ wowVersion.to!string ~". Could not load library: " ~ libraryName);
+    return getParser();
+}
 }

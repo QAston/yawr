@@ -1,14 +1,28 @@
 {
 	"name": "yawr_packetparser_app",
 	"description": "PacketParser app - translates given packet dumps into human readable output - part of Yet Another Wowd Rewrite project",
-	"targetType": "executable",
 	"sourcePaths": ["p_parser"],
-	"sourceFiles": ["../wowdefs/wowdefs/wow_versions.d"],
-	"importPaths": ["../packetparser"],
 	"dflags": ["-unittest"],
-	"dependencies": {
-		"yawr_util": {"version": "~master", "path": "../util"},
-		"vibe-d": {"version": "~master", "path": "../../vibe.d"},
-	},
-	"versions": ["VibeCustomMain"],
+    "configurations": [
+        {
+            "name": "app",
+			"targetType": "executable",
+			"sourceFiles": ["../wowdefs/wowdefs/wow_versions.d"],
+			"importPaths": ["../packetparser"],
+			"dependencies": {
+				"yawr_util": {"version": "~master", "path": "../util"},
+				"vibe-d": {"version": "~master", "path": "../../vibe.d"},
+			},
+			"versions": ["VibeCustomMain", "PacketParserDLL"],
+        },
+        {
+            "name": "wow15595",
+			"targetType": "executable",
+			"dependencies": {
+				"yawr_packetparser": {"version": "~master", "path": "../packetparser"},
+			},
+			"versions": ["WowVersionV4_3_4_15595"],
+        },
+	]
+	
 }

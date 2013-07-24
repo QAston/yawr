@@ -8,9 +8,9 @@
     "configurations": [
         {
             "name": "library",
-			"targetType": "dynamicLibrary",
-			"dflags": ["-unittest", "-shared"],
-			"versions" : ["PacketParserDLL"],
+			"targetType": "staticLibrary",
+			"importPaths": ["."],
+			"dflags": ["-unittest"],
         },
         {
             "name": "wow15595",
