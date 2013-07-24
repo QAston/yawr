@@ -233,11 +233,11 @@ template as(T)
 {
     import std.conv;
     
-    void write(VAL)(Packet!false p, auto ref VAL val) if (is (typeof(identity.write(p, val.to!T)) == void))
+    void write(VAL)(Packet!false p, auto ref VAL val)
     {
         identity.write(p, val.to!T);
     }
-    VAL read(VAL)(Packet!true p) if (is (typeof(identity.read!T(p)) == T))
+    VAL read(VAL)(Packet!true p)
     {
         return identity.read!T(p).to!VAL;
     }
@@ -247,23 +247,42 @@ static struct identity
 {
     import util.stream;
     
-    static void write(VAL)(Packet!false p, auto ref VAL val) if (is (typeof(p.data.swrite!VAL(val))== void))
+    static void write(VAL)(Packet!false p, auto ref VAL val)
     {
-        p.data.swrite!VAL(val);
+        static if (is (typeof(p.data.swrite!VAL(val))== void))
+            p.data.swrite!VAL(val);
+        else static if (is (typeof(val.handle(p)) == void))
+            val.handle(p);
+        else
+        {
+            static if (!is(typeof(VAL) == VAL))
+            {
+                VAL a;
+                a.handle(p);
+            }
+            static assert(false);
+        }
     }
-    static void write(VAL)(Packet!false p, auto ref VAL val) if (is (typeof(val.handle(p)) == void))
+
+    static VAL read(VAL)(Packet!true p)
     {
-        val.handle(p);
-    }
-    static VAL read(VAL)(Packet!true p) if (is (typeof(p.data.sread!VAL())== VAL))
-    {
-        return p.data.sread!VAL();
-    }
-    static VAL read(VAL)(Packet!true p) if (is (typeof(VAL.init.handle(p)) == void))
-    {
-        auto val = VAL.init;
-        val.handle(p);
-        return val;
+        static if (is (typeof(p.data.sread!VAL())== VAL))
+            return p.data.sread!VAL();
+        else static if (is (typeof(VAL.init.handle(p)) == void))
+        {
+            auto val = VAL.init;
+            val.handle(p);
+            return val;
+        }
+        else
+        {
+            static if (!is(typeof(VAL) == VAL))
+            {
+                VAL a;
+                a.handle(p);
+            }
+            static assert(false);
+        }
     }
 }
 
