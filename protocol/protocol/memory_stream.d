@@ -1,26 +1,37 @@
 module protocol.memory_stream;
 
+import std.exception;
+
 import vibe.stream.memory;
+import vibe.core.stream;
+
 import util.stream;
 
-class BitMemoryStream {
+class BitMemoryStream : RandomAccessStream{
     private {
         MemoryStream data;
         // buffer for streaming in bits
         ubyte bitBuffer;
         ubyte bitBufferPos;
+        size_t dataSize;
+        ubyte[] dataBuffer;
     }
     void flushBits()
     {
         bitBuffer = 0;
         bitBufferPos = 0;
     }
-    this(ubyte[] data, bool writable = true, size_t initial_size = size_t.max)
+    this(ubyte[] dataBuffer, bool writable = true, size_t dataSize = size_t.max)
     {
-        this.data = new MemoryStream(data, writable, initial_size);
+        if (dataSize == size_t.max)
+            dataSize = dataBuffer.length;
+        this.dataBuffer = dataBuffer;
+        this.dataSize = dataSize;
+        this.data = new MemoryStream(dataBuffer, writable, dataSize);
     }
     void write(in ubyte[] bytes, bool do_flush = true)
     {
+        enforce(bytes.length <= dataSize - data.tell, "Size limit of memory stream reached.");
         flushBits();
         data.write(bytes, do_flush);
     }
@@ -49,6 +60,8 @@ class BitMemoryStream {
     {
         if (bitBufferPos != 0)
             data.seek(data.tell-1);
+        else
+            enforce(1 <= dataSize - data.tell, "Size limit of memory stream reached.");
 
         bitBuffer |= (bit ? 1 : 0) << (7 - bitBufferPos);
         data.swrite!ubyte(bitBuffer);
@@ -59,6 +72,13 @@ class BitMemoryStream {
             flushBits();
     }
 
+    void resize(size_t newSize)
+    {
+        enforce(newSize <= dataBuffer.length, "Size limit of memory stream reached.");
+        assert(newSize > tell);
+        dataSize = newSize;
+    }
+
 	@property bool empty() { return data.empty(); }
 	@property ulong leastSize() { return data.leastSize(); }
 	@property bool dataAvailableForRead() { return data.dataAvailableForRead; }
@@ -66,7 +86,11 @@ class BitMemoryStream {
 	@property size_t capacity() const nothrow { return data.capacity(); }
 	@property bool readable() const nothrow { return data.readable(); }
 	@property bool writable() const nothrow { return data.writable(); }
+    const(ubyte)[] peek() { return data.peek(); }
     ulong tell() nothrow { return data.tell(); }
+	void flush() {data.flush();}
+	void finalize() {data.finalize();}
+	void write(InputStream stream, ulong nbytes = 0, bool do_flush = true) { writeDefault(stream, nbytes, do_flush); }
 }
 
 public string toHex(STREAM)(STREAM data)
@@ -173,4 +197,31 @@ unittest {
     assert(stream.readBit == true);
     assert(stream.readBit == false);
     assert(stream.readBit == false);
+}
+
+unittest {
+    import util.test;
+    test!("BitMemoryStream - resize");
+
+    ubyte buffer[] = new ubyte[20];
+    BitMemoryStream stream = new BitMemoryStream(buffer, true, 10);
+
+    foreach(i; 0..10)
+    {
+        stream.swrite(cast(ubyte)i);
+    }
+
+    assertThrown!(Throwable)(stream.swrite!byte(11));
+
+    stream.resize(15);
+    stream.swrite!byte(11);
+    stream.swrite!byte(11);
+    stream.swrite!byte(11);
+    stream.swrite!byte(11);
+    stream.swrite!byte(11);
+    assertThrown!(Throwable)(stream.writeBit(true));
+    stream.resize(20);
+
+    assertThrown!(Throwable)(stream.resize(21));
+    assertThrown!(Throwable)(stream.resize(2));
 }
