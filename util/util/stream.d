@@ -42,6 +42,7 @@ ubyte[] sreadBytes(INSTREAM)(INSTREAM stream, size_t size) if (isInStream!(INSTR
 {
     ubyte[] data = new ubyte[size];
     
+    stream.read(data);
     return data;
 }
 
