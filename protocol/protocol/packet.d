@@ -2,6 +2,7 @@ module protocol.packet;
 
 import std.array;
 import std.typecons;
+import std.traits;
 
 import util.stream;
 
@@ -132,6 +133,10 @@ class Packet(bool input)
         }
     }
 
+    /+
+     + Reads/Writes a given array
+     + Works only on types on which val works
+     +/
     void valArray(alias Format = identity, T: U[], U)(ref T value)
     {
         foreach(ref c; value)
@@ -149,23 +154,67 @@ class Packet(bool input)
             int result = 0; for (int i = 0; i < array.length; i++) { result = dg(array[i]); if (result) break; } return result; }
     }*/
     
+    /+
+     + Reads/Writes a bit of a given structure
+     + Doesn't work on types with indirections
+     +/
     void valBit(alias Format = identity, T)(ref T value, size_t index)
     {
-        
-    }
-    
-    void valXor(alias Format = identity, T)(ref T value, size_t index)
-    {
-        
+        import std.bitmanip;
+        static assert(!hasIndirections!T, "Cannot interfere with bits of referenced types");
+        auto bits = BitArray();
+        void[] data = (&value)[0..T.sizeof];
+        bits.init(cast(void[])data, T.sizeof);
+        Bit bit;
+        if (isInput)
+        {
+            val!(Format)(bit);
+            bits[index] = bit;
+        }
+        else
+        {
+            bit = bits[index];
+            val!(Format)(bit);
+        }
     }
     
     /+
-     + 
-     + 
+     + On read writes a negated bit to given bit of the given structure if bit was set to 1 in the structure
+     + On write writes 0 which is neutral to read operation
      +/
-    T skip(T, alias Format = identity)()
+    void valBitXor(alias Format = as!ubyte, T)(ref T value, size_t index)
     {
-        T t;
+        import std.bitmanip;
+        static assert(!hasIndirections!T, "Cannot interfere with bits of referenced types");
+        auto bits = BitArray();
+        void[] data = (&value)[0..T.sizeof];
+        bits.init(cast(void[])data, T.sizeof);
+        Bit bit;
+        if (isInput)
+        {
+            if (bits[index])
+            {
+                val!(Format)(bit);
+                bits[index] = !bit;
+            }
+        }
+        else
+        {
+            if (bits[index])
+            {
+                // write neutral zero on send - we don't need to fuck with client the way blizz does
+                bit = false;
+                val!(Format)(bit);
+            }
+        }
+    }
+    
+    /+
+     + Reads/Writes a value which is not part of packet structure
+     + Used mostly for unknown fields
+     +/
+    T skip(T, alias Format = identity)(T t = T.init)
+    {
         val!Format(t);
         return t;
     }
@@ -269,6 +318,7 @@ struct Handler(Opcode op)
 }
 
 // packet read/write primitives
+
 /+
  + Reads/Writes data as bits of given integral type, BITS(number of bits) must be less than bits in type
  +/
@@ -305,6 +355,39 @@ template asBits(byte BITS)
     }
 }
 
+struct Bit {
+    this(T)(T v) if (isIntegral!T)
+    {
+        val = v != 0;
+    }
+    this(T)(T v) if (is (T == bool) )
+    {
+        val = v;
+    }
+    bool val;
+    alias val this;
+}
+
+unittest {
+    import util.test;
+    mixin (test!("Bit"));
+    import std.conv;
+    auto a = Bit(false);
+    auto b = Bit(true);
+    assert(a.to!int() == 0);
+    assert(a.to!uint() == 0);
+    assert(a.to!ubyte() == 0);
+    assert(cast(uint)a == 0);
+    assert(b.to!int() == 1);
+    assert(b.to!uint() == 1);
+    assert(b.to!ubyte() == 1);
+    assert(cast(uint)b == 1);
+    ubyte c = 0;
+    ubyte d = 1;
+    assert(c.to!Bit() == false);
+    assert(d.to!Bit() == true);
+}
+
 template as(T)
 {
     import std.conv;
@@ -327,6 +410,8 @@ static struct identity
     {
         static if (is (typeof(p.data.swrite!VAL(val))== void))
             p.data.swrite!VAL(val);
+        else static if (is (VAL == Bit))
+            p.data.writeBit(val);
         else static if (is (typeof(val.handle(p)) == void))
             val.handle(p);
         else
@@ -344,6 +429,8 @@ static struct identity
     {
         static if (is (typeof(p.data.sread!VAL())== VAL))
             return p.data.sread!VAL();
+        else static if (is (VAL == Bit))
+            return Bit(p.data.readBit());
         else static if (is (typeof(VAL.init.handle(p)) == void))
         {
             auto val = VAL.init;
@@ -412,6 +499,8 @@ unittest {
     valTest!uint(10u);
     valTest!ubyte(10u);
     valTest!byte(-20);
+    valTest!float(7);
+    valTest!double(14);
     valTest!Opcode(Opcode.CMSG_CAST_SPELL);
 
     valTest!(uint, as!(ubyte))(220);
@@ -588,5 +677,36 @@ unittest {
         
         valTestDeflate!(true, true)();
         valTestDeflate!(true, false)();
+    }
+
+    void valTestBit(T, alias Format = identity)(T value)
+    {
+        auto output = new Packet!false(buffer, 0, new Session());
+        foreach(i;0..T.sizeof*8)
+        {
+            output.valBit!(Format)(value, i);
+        }
+        auto input = new Packet!true(buffer, 0, new Session());
+        T readValue;
+        foreach(i;0..T.sizeof*8)
+        {
+            input.valBit!(Format)(readValue, i);
+        }
+        assert(value == readValue);
+    }
+
+    {
+        mixin (test!("packetparser - valBit"));
+
+        
+        struct TestS2 {
+            uint a;
+        }
+
+        auto s = TestS2(68);
+
+        
+        valTestBit!(ulong)(78542324);
+        valTestBit!(TestS2)(s);
     }
 }

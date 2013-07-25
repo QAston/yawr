@@ -24,8 +24,7 @@ template isOutStream(T) {
 /+
  + Reads Integral/Char/Boolean/FloatingPoint from an INSTREAM
  +/
-T sread(T, INSTREAM, Endian endianness = Endian.littleEndian)(INSTREAM s) 
-	if (isInStream!(INSTREAM) && (isIntegral!T || isSomeChar!T || isBoolean!T || isFloatOrDouble!T))
+T sread(T, INSTREAM, Endian endianness = Endian.littleEndian)(INSTREAM s)
 {
 	ubyte[T.sizeof] array;
 	ubyte[] buffer = array[];
@@ -50,7 +49,6 @@ ubyte[] sreadBytes(INSTREAM)(INSTREAM stream, size_t size) if (isInStream!(INSTR
  + Writes Integral/Char/Boolean/FloatingPoint to an INSTREAM
  +/
 void swrite(T, OUTSTREAM, Endian endianness = Endian.littleEndian)(OUTSTREAM s, T value)
-	if (isOutStream!(OUTSTREAM) && (isIntegral!T || isSomeChar!T || isBoolean!T || isFloatOrDouble!T))
 {
 	ubyte[T.sizeof] array;
 	ubyte[] buffer = array[];
