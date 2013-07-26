@@ -17,19 +17,11 @@ import p_parser.dump;
 
 import wowdefs.wow_versions;
 
-ubyte[] threadLocalBuffer;
-
-static this()
-{
-    threadLocalBuffer = new ubyte[1024*1024];
-}
-
 /+
  + returns memory from reusable pool
  +/
 ubyte[] getBuffer(size_t size) {
-    assert(size < threadLocalBuffer.length);
-    return threadLocalBuffer[0..size];
+    return new ubyte[size];
 }
 
 /+
