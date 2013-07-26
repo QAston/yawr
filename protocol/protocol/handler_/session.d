@@ -4,13 +4,12 @@ import protocol.opcode;
 import wowdefs.wow_version;
 import protocol.packet;
 
-@Handler!(Opcode.SMSG_AUTH_CHALLENGE)
-struct SmsgAuthChallenge {
+struct PacketData(PACKET_INFO : PacketInfo!(Opcode.CMSG_AUTH_SESSION)) {
     uint[8] key;
     uint serverSeed;
     bool unk;
 
-    void handle(bool INPUT)(Packet!INPUT p)
+    void stream(bool INPUT)(Packet!INPUT p)
     {
         p.val(key[0]);
         p.val(key[1]);
@@ -36,15 +35,14 @@ struct SmsgAuthChallenge {
     }
 }
 
-@Handler!(Opcode.CMSG_AUTH_SESSION)
-struct AuthSession {
+struct PacketData(PACKET_INFO : PacketInfo!(Opcode.CMSG_AUTH_SESSION)) {
     byte[20] sha;
     WowVersion build;
     char[] accountName;
     uint clientSeed;
     ClientAddonsList!(true) clientAddonsList;
 
-    void handle(bool INPUT)(Packet!INPUT p)
+    void stream(bool INPUT)(Packet!INPUT p)
     {
         p.skip!uint;
         p.skip!uint;
@@ -99,7 +97,7 @@ struct ClientAddonsList(bool valDeflatedSize) {
 
     Time time;
 
-    void handle(bool INPUT)(Packet!INPUT p)
+    void stream(bool INPUT)(Packet!INPUT p)
     {
         p.deflateBlock!(true, valDeflatedSize)((){
             p.valCount!(uint)(addons);
@@ -116,14 +114,15 @@ struct ClientAddonsList(bool valDeflatedSize) {
     }
 }
 
-@Handler!(Opcode.SMSG_MOVE_SET_RUN_SPEED)
-struct MoveSetRunSpeed
+struct PacketData(PACKET_INFO : PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED, false))
 {
-    uint unk;
-    float speed;
-    ulong guid;
-    
-    void handle(bool INPUT)(Packet!INPUT p)
+    static if (PACKET_INFO.dir == false)
+    {
+        uint unk;
+        float speed;
+        ulong guid;
+    }
+    void stream(bool INPUT)(Packet!INPUT p)
     {
         p.valPackMarkByteSeq(guid, 6, 1, 5, 2, 7, 0, 3, 4);
         p.valPackByteSeq(guid, 5,3,1,4);
@@ -131,4 +130,14 @@ struct MoveSetRunSpeed
         p.val(speed);
         p.valPackByteSeq(guid, 6,0,7,2);
     }
+}
+
+struct PacketInfo(Opcode OPCODE, bool DIR=false)
+{
+    enum dir = DIR;
+    enum opcode = OPCODE;
+}
+
+unittest {
+    auto data = PacketData!(PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED, false))(0,0,0);
 }

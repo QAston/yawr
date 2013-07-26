@@ -17,7 +17,6 @@ private template isHandlerStructPred(alias T)
     enum isHandlerStructPred = T.stringof.startsWith("Handler!");//is (typeof(T) == Handler);
 }
 
-
 /+
  + Checks if given symbol is a valid packet handler struct
  +/
