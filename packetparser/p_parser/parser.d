@@ -31,11 +31,10 @@ void parse(InputRange!PacketDump packets) nothrow
         {
             auto p = new Packet!true(packetDump.data, cast(Opcode)packetDump.opcode, getSession(packetDump.sessionId));
             writefln("%s %s %s", p.opcode.opcodeToString, packetDump.direction, packetDump.dateTime.to!string);
-            writefln("%s", p.toHex());
+            //writefln("%s", p.toHex());
             if (!protocol.handler.hasOpcodeHandler(p.opcode))
             {
                 writeln("No opcode handler for packet");
-                stdin.readln();
                 continue;
             }
             void[] data = read(p, p.opcode);
