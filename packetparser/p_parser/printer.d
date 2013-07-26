@@ -107,7 +107,7 @@ unittest {
 string packetPrinter(T)(void[] data)
 {
     import std.stdio;
-    assert(T.sizeof * 4 == data.length);
+    assert(T.sizeof == data.length);
     return fieldsToString!(T)(*(cast(T*)data));
 }
 
