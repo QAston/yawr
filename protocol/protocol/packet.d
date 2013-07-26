@@ -5,6 +5,7 @@ import std.typecons;
 import std.traits;
 
 import util.stream;
+import util.bit;
 
 import protocol.memory_stream;
 import protocol.opcode;
@@ -42,24 +43,23 @@ class Packet(bool input)
     }
 
     /+
-     + Behavior depends on whenever in input or output mode
      + input: Copies data from stream to value
      + output: Copies data from value to stream
      + Parameters:
      + Format - template functions which handles read/write to stream
      +/
-    void val(alias Format = identity, T)(ref T value) if (!isNullable!T && isInput /*&& is(typeof(Format.read!T(this)) == T)*/)
+    void val(alias Format = identity, T)(ref T value) if (!isNullable!T && isInput)
     {
         value = Format.read!T(this);
     }
     /// ditto
-    void val(alias Format = identity, T)(ref T value) if (!isNullable!T && !isInput /*&& is(typeof(Format.write(this, value)) == void)*/)
+    void val(alias Format = identity, T)(ref T value) if (!isNullable!T && !isInput)
     {
         Format.write(this, value);
     }
 
     /// ditto
-    void val(alias Format = identity, T : Nullable!U, U)(ref T value) if (isInput /*&& is(typeof(Format.read!U(this)) == U)*/ )
+    void val(alias Format = identity, T : Nullable!U, U)(ref T value) if (isInput )
     {
         if (value.isNull())
             throw new PacketException("Trying to read nullable!val without reading valIs==true before.");
@@ -67,7 +67,7 @@ class Packet(bool input)
     }
 
     /// ditto
-    void val(alias Format = identity, T : Nullable!U, U)(ref T value) if (!isInput /*&& is(typeof(Format.write(this, value.get())) == void)*/)
+    void val(alias Format = identity, T : Nullable!U, U)(ref T value) if (!isInput)
     {
         if (value.isNull())
             throw new PacketException("Trying to write nullable!val while no value set (missing assignment to val somewhere)");
@@ -76,12 +76,11 @@ class Packet(bool input)
     }
 
     /+
-    + Behavior depends on whenever in input or output mode
-    + input: Reads boolean indicating if Nullable!val is present from stream
-    + output: Writes boolean indicating if Nullable!val is present to stream
-    + Parameters:
-    + Format - template functions which handles read/write to stream
-    +/
+     + input: Reads boolean indicating if Nullable!val is present from stream
+     + output: Writes boolean indicating if Nullable!val is present to stream
+     + Parameters:
+     + Format - template functions which handles read/write to stream
+     +/
     bool valIs(alias Format = identity, T: Nullable!U, U)(ref T value)
     {
         static if (isInput)
@@ -101,7 +100,6 @@ class Packet(bool input)
     }
     
     /+
-     + Behavior depends on whenever in input or output mode
      + input: Copies data from stream to value's length property
      + output: Copies value's length property from value to stream
      + Parameters:
@@ -145,6 +143,22 @@ class Packet(bool input)
         }
     }
 
+    /+
+     + A sequence of Reads/Writes into an array elements with given indexes
+     +/
+    void valArraySeq(alias Format = identity, T: U[], U)(ref T value, int[] indexes...)
+    in {
+        import util.algorithm;
+        assert(indexes.length <= value.length);
+        assert(elementsUnique(indexes));
+    }
+    body {
+        foreach(i; indexes)
+        {
+            val!(Format)(value[i]);
+        }
+    }
+
 
     /*void valTail(alias Format = identity, T: U[], U)(ref T value, int delegate(ref uint) dg)
     {
@@ -155,18 +169,14 @@ class Packet(bool input)
     }*/
     
     /+
-     + Reads/Writes a bit of a given structure
-     + Doesn't work on types with indirections
+     + Writes/Reads a bit[index] of a given structure
      +/
     void valBit(alias Format = identity, T)(ref T value, size_t index)
     {
-        import std.bitmanip;
-        static assert(!hasIndirections!T, "Cannot interfere with bits of referenced types");
-        auto bits = BitArray();
-        void[] data = (&value)[0..T.sizeof];
-        bits.init(cast(void[])data, T.sizeof);
+        auto bits = asBitArray(value);
+
         Bit bit;
-        if (isInput)
+        static if (isInput)
         {
             val!(Format)(bit);
             bits[index] = bit;
@@ -177,40 +187,91 @@ class Packet(bool input)
             val!(Format)(bit);
         }
     }
-    
+
     /+
-     + On read writes a negated bit to given bit of the given structure if bit was set to 1 in the structure
-     + On write writes 0 which is neutral to read operation
+     + Writes/Reads bit 1 to stream if byte of given index was present in value
+     + Used as primitive compression method
      +/
-    void valBitXor(alias Format = as!ubyte, T)(ref T value, size_t index)
+    void valPackMarkByte(alias Format = identity, T)(ref T value, size_t index)
     {
-        import std.bitmanip;
-        static assert(!hasIndirections!T, "Cannot interfere with bits of referenced types");
-        auto bits = BitArray();
-        void[] data = (&value)[0..T.sizeof];
-        bits.init(cast(void[])data, T.sizeof);
-        Bit bit;
-        if (isInput)
+        auto bytes = asByteArray(value);
+        static if (isInput)
         {
-            if (bits[index])
-            {
-                val!(Format)(bit);
-                bits[index] = !bit;
-            }
+            Bit notZero;
+            val!(Format)(notZero);
+            bytes[index] = notZero;
+            assert(bytes[index] == 0 || bytes[index] == 1); 
         }
         else
         {
-            if (bits[index])
-            {
-                // write neutral zero on send - we don't need to fuck with client the way blizz does
-                bit = false;
-                val!(Format)(bit);
-            }
+            Bit notZero = bytes[index] != 0;
+            val!(Format)(notZero);
+        }
+    }
+
+    /+
+     + A sequence of valPackMarkByte calls with given indexes
+     +/
+    void valPackMarkByteSeq(alias Format = identity, T)(ref T value, int[] indexes... )
+    in {
+        import util.algorithm;
+        assert(indexes.length <= T.sizeof);
+        assert(elementsUnique(indexes));
+    }
+    body {
+        foreach(i; indexes)
+        {
+            valPackMarkByte(value, cast(size_t)i);
         }
     }
     
     /+
-     + Reads/Writes a value which is not part of packet structure
+     + Writes/Reads byte^1 of given index to stream if the byte has nonzero value
+     + Used as primitive compression method
+     +/
+    void valPackByte(alias Format = identity, T)(ref T value, size_t index)
+    {
+        auto bytes = asByteArray(value);
+
+        static if (isInput)
+        {
+            if (bytes[index])
+            {
+                assert(bytes[index] == 1, "Invalid value for valPackByte - most likely call is done twice on the same byte");
+                ubyte b;
+                val!(Format)(b);
+                bytes[index] ^= b;
+            }
+        }
+        else
+        {
+            if (bytes[index])
+            {
+                ubyte b = bytes[index]^1;
+                val!(Format)(b);
+            }
+        }
+    }
+
+    /+
+     + A sequence of valPackByte calls with given indexes
+     +/
+    void valPackByteSeq(alias Format = identity, T)(ref T value, int[] indexes... )
+    in {
+        import util.algorithm;
+        assert(indexes.length <= T.sizeof);
+        assert(elementsUnique(indexes));
+    }
+    body {
+        foreach(i; indexes)
+        {
+            valPackByte(value, cast(size_t)i);
+        }
+    }
+
+    
+    /+
+     + Reads/Writes a value which is not part of packet data structure
      + Used mostly for unknown fields
      +/
     T skip(T, alias Format = identity)(T t = T.init)
@@ -355,39 +416,9 @@ template asBits(byte BITS)
     }
 }
 
-struct Bit {
-    this(T)(T v) if (isIntegral!T)
-    {
-        val = v != 0;
-    }
-    this(T)(T v) if (is (T == bool) )
-    {
-        val = v;
-    }
-    bool val;
-    alias val this;
-}
-
-unittest {
-    import util.test;
-    mixin (test!("Bit"));
-    import std.conv;
-    auto a = Bit(false);
-    auto b = Bit(true);
-    assert(a.to!int() == 0);
-    assert(a.to!uint() == 0);
-    assert(a.to!ubyte() == 0);
-    assert(cast(uint)a == 0);
-    assert(b.to!int() == 1);
-    assert(b.to!uint() == 1);
-    assert(b.to!ubyte() == 1);
-    assert(cast(uint)b == 1);
-    ubyte c = 0;
-    ubyte d = 1;
-    assert(c.to!Bit() == false);
-    assert(d.to!Bit() == true);
-}
-
+/+
+ + Reads/Writes string as binary representation of type T
+ +/
 template as(T)
 {
     import std.conv;
@@ -402,6 +433,9 @@ template as(T)
     }
 }
 
+/+
+ + Reads/Writes value as their bin representation
+ +/
 static struct identity
 {
     import util.stream;
@@ -449,6 +483,9 @@ static struct identity
     }
 }
 
+/+
+ + Reads/Writes string as ASCIIZ
+ +/
 static struct asCString
 {
     import std.conv;
@@ -570,7 +607,7 @@ unittest {
     }
     
     {
-        mixin (test!("packetparser - nullable"));
+        mixin (test!("packetparser - nullable, array"));
         ubyte[] a = new ubyte[60];
         foreach(i, el; a)
         {
@@ -589,6 +626,49 @@ unittest {
 
         assertThrown!(PacketException)(valTestDynArray(c));
         assertThrown!(PacketException)(valTestDynArray!ubyte(d));
+    }
+
+    void valArraySeqTest(T, alias Format = identity)(T value, int[]indexes...)
+    {
+        auto output = new Packet!false(buffer, 0, new Session());
+        output.valArraySeq!(Format)(value, indexes);
+        auto input = new Packet!true(buffer, 0, new Session());
+        T readValue;
+        input.valArraySeq!(Format)(readValue, indexes);
+        foreach(i;indexes)
+        {
+            assert(value[i] == readValue[i]);
+        }
+    }
+
+    {
+        mixin (test!"packetparser - valArraySeq");
+        ubyte[5] a = [0,4,6,7,3];
+        valArraySeqTest(a, 0,1,2,3,4);
+        valArraySeqTest(a, 3,4,0,1,2);
+        valArraySeqTest(a, 4,0,1,2);
+        valArraySeqTest(a, 1,2);
+    }
+
+    void valPackByteSeqTest(T, alias Format = identity)(T value, int[]markIndexes, int[]byteIndexes)
+    {
+        auto output = new Packet!false(buffer, 0, new Session());
+        output.valPackMarkByteSeq!(Format)(value, markIndexes);
+        output.valPackByteSeq!(Format)(value, byteIndexes);
+        auto input = new Packet!true(buffer, 0, new Session());
+        T readValue;
+        input.valPackMarkByteSeq!(Format)(readValue, markIndexes);
+        input.valPackByteSeq!(Format)(readValue, byteIndexes);
+
+        assert(value == readValue);
+    }
+
+
+    {
+        mixin (test!"packetparser - valPackByteSeq tests");
+        ulong a= 0x11223344;
+        valPackByteSeqTest(a, [6, 1, 5, 2, 7, 0, 3, 4], [5, 3, 1, 4, 6, 0, 7, 2]);
+        valPackByteSeqTest(a, [5, 3, 1, 4, 6, 0, 7, 2], [6, 1, 5, 2, 7, 0, 3, 4]);
     }
 
     {
@@ -652,7 +732,6 @@ unittest {
                 output.val(addon.crc);
                 output.val(addon.unknown);
             });
-            writeln(output.data.toHex());
             size = cast(size_t)output.data.tell;
         }
 

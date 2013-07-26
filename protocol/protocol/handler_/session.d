@@ -101,7 +101,6 @@ struct ClientAddonsList(bool valDeflatedSize) {
 
     void handle(bool INPUT)(Packet!INPUT p)
     {
-        // options: deflate stream, write deflated size
         p.deflateBlock!(true, valDeflatedSize)((){
             p.valCount!(uint)(addons);
 
@@ -126,16 +125,10 @@ struct MoveSetRunSpeed
     
     void handle(bool INPUT)(Packet!INPUT p)
     {
-        //p.val(!asBitStream(6, 1, 5, 2, 7, 0, 3, 4), guid);
-        p.valBitXor(guid, 5);
-        p.valBitXor(guid, 3);
-        p.valBitXor(guid, 1);
-        p.valBitXor(guid, 4);
+        p.valPackMarkByteSeq(guid, 6, 1, 5, 2, 7, 0, 3, 4);
+        p.valPackByteSeq(guid, 5,3,1,4);
         p.val(unk);
         p.val(speed);
-        p.valBitXor(guid, 6);
-        p.valBitXor(guid, 0);
-        p.valBitXor(guid, 7);
-        p.valBitXor(guid, 2);
+        p.valPackByteSeq(guid, 6,0,7,2);
     }
 }
