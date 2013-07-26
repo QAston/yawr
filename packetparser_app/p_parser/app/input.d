@@ -18,7 +18,7 @@ import p_parser.dump;
 import wowdefs.wow_versions;
 
 /+
- + returns memory from reusable pool
+ + returns memory from reusable pool - disabled at the moment because of vibe.d problems with such buffer
  +/
 ubyte[] getBuffer(size_t size) {
     return new ubyte[size];
