@@ -1,6 +1,6 @@
-module protocol.handler_.session;
+module wowprotocol.packet_.session;
 
-import protocol.opcode;
+import wowprotocol.opcode;
 import wowdefs.wow_version;
 import protocol.packet;
 

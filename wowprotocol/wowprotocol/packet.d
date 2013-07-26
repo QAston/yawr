@@ -1,11 +1,11 @@
 /++
  + This module handles access to protocol.handler_.* packet handlers
  +/
-module protocol.handler;
+module wowprotocol.packet;
 
-public import protocol.handler_.session;
+public import wowprotocol.packet_.session;
 import protocol.packet;
-import protocol.opcode;
+import wowprotocol.opcode;
 import std.traits;
 import std.typetuple;
 import std.string;
@@ -66,7 +66,7 @@ private static HandlerEntry[Opcode] handlers;
 
 static this()
 {
-    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, ModuleMembersMatching!(protocol.handler_.session, isHandler)))
+    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, ModuleMembersMatching!(wowprotocol.packet_.session, isHandler)))
     {
         foreach(opc; handlerOpcode.opcodes)
         {

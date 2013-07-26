@@ -1,13 +1,13 @@
 /+
  + Handles access to wowVersion dependent Opcode enum
  +/
-module protocol.opcode;
+module wowprotocol.opcode;
 
 import wowdefs.wow_version;
 import std.conv;
 
 enum UNKNOWN_OPCODE = 0x0000;
-mixin ("public import protocol.opcode_." ~ wowVersion.to!string() ~ ";");
+mixin ("public import wowprotocol.opcode_." ~ wowVersion.to!string() ~ ";");
 
 /+
  + Converts given opcode to a string

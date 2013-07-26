@@ -1,0 +1,25 @@
+{
+	"name": "yawr_wowprotocol",
+	"description": "Library defining wow client-server communication protocol - part of Yet Another Wowd Rewrite project",
+	"targetType": "library",
+	"sourcePaths": ["wowprotocol"],
+	"importPaths": ["."],
+	"dflags": ["-unittest"],
+	"versions": ["VibeCustomMain"],
+	"dependencies": {
+		"yawr_wowdefs": {"version": "~master", "path": "../wowdefs"},
+		"yawr_protocol": {"version": "~master", "path": "../protocol"},
+	},
+    "configurations": [
+        {
+            "name": "library",
+		},
+        {
+            "name": "tests15595",
+			"targetType": "executable",
+			"dflags": ["-unittest"],
+			"versions": ["WowVersionV4_3_4_15595"],
+			"sourceFiles": ["../common/tests_main.d"],
+		},
+	]
+}

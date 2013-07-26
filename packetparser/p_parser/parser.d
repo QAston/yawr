@@ -4,14 +4,14 @@ import std.range;
 import std.stdio;
 import std.conv;
 
-import protocol.handler;
-import protocol.opcode;
+import wowprotocol.packet;
+import wowprotocol.opcode;
 import protocol.packet;
 
 import p_parser.dump;
 import p_parser.printer;
 
-import protocol.session;
+import wowprotocol.session;
 
 static Session[uint] sessions;
 
@@ -33,7 +33,7 @@ void parse(InputRange!PacketDump packets) nothrow
             Opcode opcode = cast(Opcode)packetDump.opcode;
             writefln("%s %s %s", opcodeToString(opcode), packetDump.direction, packetDump.dateTime.to!string);
             //writefln("%s", p.toHex());
-            if (!protocol.handler.hasOpcodeHandler(opcode))
+            if (!wowprotocol.packet.hasOpcodeHandler(opcode))
             {
                 writeln("No opcode handler for packet");
                 continue;

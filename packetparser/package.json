@@ -3,7 +3,7 @@
 	"description": "Library handling wow-version specific tasks of PacketParser app - part of Yet Another Wowd Rewrite project",
 	"sourcePaths": ["p_parser"],
 	"dependencies": {
-		"yawr_protocol": {"version": "~master", "path": "../protocol"},
+		"yawr_wowprotocol": {"version": "~master", "path": "../wowprotocol"},
 	},
     "configurations": [
         {

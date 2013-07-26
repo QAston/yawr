@@ -1,4 +1,4 @@
-module protocol.opcode_.V4_3_4_15595;
+module wowprotocol.opcode_.V4_3_4_15595;
 
 enum Opcode : ushort
 {

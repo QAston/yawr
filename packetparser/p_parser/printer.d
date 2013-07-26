@@ -2,8 +2,8 @@ module p_parser.printer;
 
 import std.traits;
 
-import protocol.opcode;
-import protocol.handler;
+import wowprotocol.opcode;
+import wowprotocol.packet;
 import std.typetuple;
 import util.traits;
 
@@ -123,7 +123,7 @@ body {
 
 static this()
 {
-    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, ModuleMembersMatching!(protocol.handler_.session, isHandler)))
+    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, ModuleMembersMatching!(wowprotocol.packet_.session, isHandler)))
     {
         foreach(opc; handlerOpcode.opcodes)
         {

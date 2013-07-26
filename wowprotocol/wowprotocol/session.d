@@ -1,4 +1,4 @@
-module protocol.session;
+module wowprotocol.session;
 
 import util.zlib;
 
