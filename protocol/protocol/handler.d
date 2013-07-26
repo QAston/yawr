@@ -97,7 +97,7 @@ body {
     void[] packetData = void;
     if (handlerEntry.typeInfo.init().ptr is null)
     {
-        packetData = cast(void[])new uint[handlerEntry.typeInfo.tsize()];
+        packetData = cast(void[])new ubyte[handlerEntry.typeInfo.tsize()];
     }
     else
     {
