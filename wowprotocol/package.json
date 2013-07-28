@@ -5,10 +5,8 @@
 	"sourcePaths": ["wowprotocol"],
 	"importPaths": ["."],
 	"dflags": ["-unittest"],
-	"versions": ["VibeCustomMain"],
 	"dependencies": {
 		"yawr_wowdefs": {"version": "~master", "path": "../wowdefs"},
-		"yawr_protocol": {"version": "~master", "path": "../protocol"},
 	},
     "configurations": [
         {

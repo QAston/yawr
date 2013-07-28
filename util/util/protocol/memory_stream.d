@@ -1,4 +1,4 @@
-module protocol.memory_stream;
+module util.protocol.memory_stream;
 
 import std.exception;
 

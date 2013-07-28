@@ -1,15 +1,16 @@
-module wowprotocol.packet_.session;
+module wowprotocol.packet_data_.session;
 
 import wowprotocol.opcode;
 import wowdefs.wow_version;
-import protocol.packet;
+import util.protocol.packet_stream;
+import wowprotocol.packet_data;
 
-struct PacketData(PACKET_INFO : PacketInfo!(Opcode.CMSG_AUTH_SESSION)) {
+struct PacketData(PACKET_INFO : PacketInfo!(Opcode.SMSG_AUTH_CHALLENGE)) {
     uint[8] key;
     uint serverSeed;
     bool unk;
 
-    void stream(bool INPUT)(Packet!INPUT p)
+    void stream(bool INPUT)(PacketStream!INPUT p)
     {
         p.val(key[0]);
         p.val(key[1]);
@@ -42,7 +43,7 @@ struct PacketData(PACKET_INFO : PacketInfo!(Opcode.CMSG_AUTH_SESSION)) {
     uint clientSeed;
     ClientAddonsList!(true) clientAddonsList;
 
-    void stream(bool INPUT)(Packet!INPUT p)
+    void stream(bool INPUT)(PacketStream!INPUT p)
     {
         p.skip!uint;
         p.skip!uint;
@@ -97,7 +98,7 @@ struct ClientAddonsList(bool valDeflatedSize) {
 
     Time time;
 
-    void stream(bool INPUT)(Packet!INPUT p)
+    void stream(bool INPUT)(PacketStream!INPUT p)
     {
         p.deflateBlock!(true, valDeflatedSize)((){
             p.valCount!(uint)(addons);
@@ -114,15 +115,12 @@ struct ClientAddonsList(bool valDeflatedSize) {
     }
 }
 
-struct PacketData(PACKET_INFO : PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED, false))
+struct PacketData(PACKET_INFO : PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED))
 {
-    static if (PACKET_INFO.dir == false)
-    {
-        uint unk;
-        float speed;
-        ulong guid;
-    }
-    void stream(bool INPUT)(Packet!INPUT p)
+    uint unk;
+    float speed;
+    ulong guid;
+    void stream(bool INPUT)(PacketStream!INPUT p)
     {
         p.valPackMarkByteSeq(guid, 6, 1, 5, 2, 7, 0, 3, 4);
         p.valPackByteSeq(guid, 5,3,1,4);
@@ -132,12 +130,6 @@ struct PacketData(PACKET_INFO : PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED, fals
     }
 }
 
-struct PacketInfo(Opcode OPCODE, bool DIR=false)
-{
-    enum dir = DIR;
-    enum opcode = OPCODE;
-}
-
 unittest {
-    auto data = PacketData!(PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED, false))(0,0,0);
+    auto data = PacketData!(PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED))(0,0,0);
 }

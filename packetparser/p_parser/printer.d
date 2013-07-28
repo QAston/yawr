@@ -3,7 +3,7 @@ module p_parser.printer;
 import std.traits;
 
 import wowprotocol.opcode;
-import wowprotocol.packet;
+import wowprotocol.packet_data;
 import std.typetuple;
 import util.traits;
 
@@ -29,7 +29,9 @@ string fieldsToString(T)(in T t, in string alignment="")
     }
     else static if (is(T == Opcode))
     {
-
+        str.put(alignment);
+        str.put(opcodeToString(t));
+        str.put("\n");
     }
     else static if (is(T BASE == enum))
     {
@@ -104,6 +106,16 @@ unittest {
     fieldsToString(A());
 }
 
+private static string function(void[])[Opcode] packetPrinters;
+
+string print(Opcode opcode, void[] data)
+in {
+    assert (canStreamPacket(opcode));
+}
+body {
+    return packetPrinters[opcode](data);
+}
+
 string packetPrinter(T)(void[] data)
 {
     import std.stdio;
@@ -111,24 +123,20 @@ string packetPrinter(T)(void[] data)
     return fieldsToString!(T)(*(cast(T*)data));
 }
 
-private static string function(void[])[Opcode] packetPrinters;
-
-string print(Opcode opcode, void[] data)
-in {
-    assert (hasOpcodeHandler(opcode));
-}
-body {
-    return packetPrinters[opcode](data);
-}
-
 static this()
 {
-    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, ModuleMembersMatching!(wowprotocol.packet_.session, isHandler)))
+    foreach(opcodeString;__traits(allMembers, Opcode))
     {
-        foreach(opc; handlerOpcode.opcodes)
-        {
-            assert (opc !in packetPrinters, "Opcode " ~ opc.opcodeToString ~ " has more than one handler registered for it");
-            packetPrinters[opc] = &packetPrinter!(handlerOpcode.handler);
-        }
+        mixin("Opcode opcode = Opcode." ~ opcodeString ~ ";");
+        if (cast(ushort)opcode == UNKNOWN_OPCODE)
+            continue;
+
+        mixin(q{
+            static if(__traits(compiles, PacketData!(PacketInfo!(Opcode.}~ opcodeString ~q{))))
+            {
+                mixin("alias PacketData!(PacketInfo!(Opcode."~ opcodeString ~")) packetDataType;");
+
+                packetPrinters[opcode] = &packetPrinter!(packetDataType);
+            }});
     }
 }

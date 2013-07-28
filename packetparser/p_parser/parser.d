@@ -4,9 +4,9 @@ import std.range;
 import std.stdio;
 import std.conv;
 
-import wowprotocol.packet;
+import wowprotocol.packet_data;
 import wowprotocol.opcode;
-import protocol.packet;
+import util.protocol.packet_stream;
 
 import p_parser.dump;
 import p_parser.printer;
@@ -29,11 +29,11 @@ void parse(InputRange!PacketDump packets) nothrow
     try {
         foreach(packetDump; packets)
         {
-            auto p = new Packet!true(packetDump.data, &(getSession(packetDump.sessionId).decompress));
+            auto p = new PacketStream!true(packetDump.data, &(getSession(packetDump.sessionId).decompress));
             Opcode opcode = cast(Opcode)packetDump.opcode;
             writefln("%s %s %s", opcodeToString(opcode), packetDump.direction, packetDump.dateTime.to!string);
             //writefln("%s", p.toHex());
-            if (!wowprotocol.packet.hasOpcodeHandler(opcode))
+            if (!wowprotocol.packet_data.canStreamPacket(opcode))
             {
                 writeln("No opcode handler for packet");
                 continue;
@@ -52,4 +52,5 @@ void parse(InputRange!PacketDump packets) nothrow
         }
     }
 }
+
 

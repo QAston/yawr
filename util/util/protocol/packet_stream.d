@@ -1,4 +1,4 @@
-module protocol.packet;
+module util.protocol.packet_stream;
 
 import std.array;
 import std.typecons;
@@ -7,9 +7,10 @@ import std.traits;
 import util.stream;
 import util.bit;
 
-import protocol.memory_stream;
+import util.protocol.memory_stream;
+import util.algorithm;
 
-final class Packet(bool input)
+final class PacketStream(bool input)
 {
     enum isInput = input;
     enum isOutput = !input;
@@ -151,7 +152,6 @@ final class Packet(bool input)
      +/
     void valArraySeq(alias Format = identity, T: U[], U)(ref T value, int[] indexes...)
     in {
-        import util.algorithm;
         assert(indexes.length <= value.length);
         assert(elementsUnique(indexes));
     }
@@ -208,7 +208,6 @@ final class Packet(bool input)
      +/
     void valPackMarkByteSeq(alias Format = identity, T)(ref T value, int[] indexes... )
     in {
-        import util.algorithm;
         assert(indexes.length <= T.sizeof);
         assert(elementsUnique(indexes));
     }
@@ -252,7 +251,6 @@ final class Packet(bool input)
      +/
     void valPackByteSeq(alias Format = identity, T)(ref T value, int[] indexes... )
     in {
-        import util.algorithm;
         assert(indexes.length <= T.sizeof);
         assert(elementsUnique(indexes));
     }
@@ -366,14 +364,14 @@ template asBits(byte BITS)
     import std.conv;
     import std.bitmanip;
 
-    void write(VAL)(Packet!false p, auto ref VAL val) if (isIntegral!VAL)
+    void write(VAL)(PacketStream!false p, auto ref VAL val) if (isIntegral!VAL)
     {
         // not equal because of signed problems
         static assert(VAL.sizeof * 8 > BITS);
         for (byte i = BITS - 1; i >= 0; --i)
             p.data.writeBit((val & (1 << i)) != 0);
     }
-    VAL read(VAL)(Packet!true p)  if (isIntegral!VAL)
+    VAL read(VAL)(PacketStream!true p)  if (isIntegral!VAL)
     {
         // not equal because of signed problems
         static assert(VAL.sizeof * 8 > BITS);
@@ -401,11 +399,11 @@ template as(T)
 {
     import std.conv;
     
-    void write(VAL)(Packet!false p, auto ref VAL val)
+    void write(VAL)(PacketStream!false p, auto ref VAL val)
     {
         identity.write(p, val.to!T);
     }
-    VAL read(VAL)(Packet!true p)
+    VAL read(VAL)(PacketStream!true p)
     {
         return identity.read!T(p).to!VAL;
     }
@@ -418,7 +416,7 @@ static struct identity
 {
     import util.stream;
     
-    static void write(VAL)(Packet!false p, auto ref VAL val)
+    static void write(VAL)(PacketStream!false p, auto ref VAL val)
     {
         static if (is (typeof(p.data.swrite!VAL(val))== void))
             p.data.swrite!VAL(val);
@@ -437,7 +435,7 @@ static struct identity
         }
     }
 
-    static VAL read(VAL)(Packet!true p)
+    static VAL read(VAL)(PacketStream!true p)
     {
         static if (is (typeof(p.data.sread!VAL())== VAL))
             return p.data.sread!VAL();
@@ -469,7 +467,7 @@ static struct asCString
     import std.conv;
     import std.traits;
 
-    static void write(VAL)(Packet!false p, ref VAL val) if (isSomeString!VAL)
+    static void write(VAL)(PacketStream!false p, ref VAL val) if (isSomeString!VAL)
     {
         foreach(ref c; val)
         {
@@ -477,7 +475,7 @@ static struct asCString
         }
         p.data.swrite!char('\0');
     }
-    static VAL read(VAL)(Packet!true p) if (isSomeString!VAL)
+    static VAL read(VAL)(PacketStream!true p) if (isSomeString!VAL)
     {
         auto cstr = appender!(char[]);
        
@@ -502,9 +500,9 @@ unittest {
     ubyte buffer[] = new ubyte[600];
     void valTest(T, alias Format = identity)(T value)
     {
-        auto output = new Packet!false(buffer, null);
+        auto output = new PacketStream!false(buffer, null);
         output.val!(Format)(value);
-        auto input = new Packet!true(buffer, null);
+        auto input = new PacketStream!true(buffer, null);
         T readValue;
         input.val!(Format)(readValue);
         assert(value == readValue);
@@ -524,10 +522,10 @@ unittest {
 
     void valTestNullable(T, alias Format = identity)(T value)
     {
-        auto output = new Packet!false(buffer, null);
+        auto output = new PacketStream!false(buffer, null);
         if (output.valIs!(Format)(value))
             output.val!(Format)(value);
-        auto input = new Packet!true(buffer, null);
+        auto input = new PacketStream!true(buffer, null);
         T readValue;
         if (input.valIs!(Format)(readValue))
             input.val!(Format)(readValue);
@@ -539,17 +537,17 @@ unittest {
 
     void valTestNullableError1(T, alias Format = identity)(T value)
     {
-        auto output = new Packet!false(buffer, null);
+        auto output = new PacketStream!false(buffer, null);
         if (output.valIs!(Format)(value))
             output.val!(Format)(value);
-        auto input = new Packet!true(buffer, null);
+        auto input = new PacketStream!true(buffer, null);
         T readValue;
         input.val!(Format)(readValue);
     }
 
     void valTestNullableError2(T, alias Format = identity)(T value)
     {
-        auto output = new Packet!false(buffer, null);
+        auto output = new PacketStream!false(buffer, null);
         output.val!(Format)(value);
     }
 
@@ -567,13 +565,13 @@ unittest {
 
     void valTestDynArray(COUNTER_TYPE = byte, alias Format = identity, T)(T value)
     {
-        auto output = new Packet!false(buffer, null);
+        auto output = new PacketStream!false(buffer, null);
         output.valCount!(COUNTER_TYPE, Format)(value);
         foreach(ref el; value)
         {
             output.val!(Format)(el);
         }
-        auto input = new Packet!true(buffer, null);
+        auto input = new PacketStream!true(buffer, null);
         T readVal;
         input.valCount!(COUNTER_TYPE, Format)(readVal);
         foreach(ref el; readVal)
@@ -607,9 +605,9 @@ unittest {
 
     void valArraySeqTest(T, alias Format = identity)(T value, int[]indexes...)
     {
-        auto output = new Packet!false(buffer, null);
+        auto output = new PacketStream!false(buffer, null);
         output.valArraySeq!(Format)(value, indexes);
-        auto input = new Packet!true(buffer, null);
+        auto input = new PacketStream!true(buffer, null);
         T readValue;
         input.valArraySeq!(Format)(readValue, indexes);
         foreach(i;indexes)
@@ -629,10 +627,10 @@ unittest {
 
     void valPackByteSeqTest(T, alias Format = identity)(T value, int[]markIndexes, int[]byteIndexes)
     {
-        auto output = new Packet!false(buffer, null);
+        auto output = new PacketStream!false(buffer, null);
         output.valPackMarkByteSeq!(Format)(value, markIndexes);
         output.valPackByteSeq!(Format)(value, byteIndexes);
-        auto input = new Packet!true(buffer, null);
+        auto input = new PacketStream!true(buffer, null);
         T readValue;
         input.valPackMarkByteSeq!(Format)(readValue, markIndexes);
         input.valPackByteSeq!(Format)(readValue, byteIndexes);
@@ -659,7 +657,7 @@ unittest {
         struct TestS {
             uint a;
             bool b;
-            void stream(bool INPUT)(Packet!INPUT p)
+            void stream(bool INPUT)(PacketStream!INPUT p)
             {
                 p.val(a);
                 p.val(b);
@@ -703,7 +701,7 @@ unittest {
         size_t size;
 
         {
-            auto output = new Packet!false(buffer, (bool b, void[] uncompressedData){return compress(uncompressedData).dup;});
+            auto output = new PacketStream!false(buffer, (bool b, void[] uncompressedData){return compress(uncompressedData).dup;});
             output.deflateBlock!(STREAM, WRITE_SIZE)((){
                 output.val!(asCString)(addon.name);
                 output.val(addon.enabled);
@@ -715,7 +713,7 @@ unittest {
 
         Addon readValue;
         {
-            auto input = new Packet!true(buffer[0..size], (bool b, void[] compressedData, size_t uncompressedSize){return uncompress(compressedData, uncompressedSize).dup;});
+            auto input = new PacketStream!true(buffer[0..size], (bool b, void[] compressedData, size_t uncompressedSize){return uncompress(compressedData, uncompressedSize).dup;});
             input.deflateBlock!(STREAM, WRITE_SIZE)((){
                 input.val!(asCString)(readValue.name);
                 input.val(readValue.enabled);
@@ -738,12 +736,12 @@ unittest {
 
     void valTestBit(T, alias Format = identity)(T value)
     {
-        auto output = new Packet!false(buffer,null);
+        auto output = new PacketStream!false(buffer,null);
         foreach(i;0..T.sizeof*8)
         {
             output.valBit!(Format)(value, i);
         }
-        auto input = new Packet!true(buffer,null);
+        auto input = new PacketStream!true(buffer,null);
         T readValue;
         foreach(i;0..T.sizeof*8)
         {
