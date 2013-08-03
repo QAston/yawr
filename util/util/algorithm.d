@@ -5,7 +5,7 @@ import std.algorithm;
 /+
  + Checks if elements in range are unique
  +/
-bool elementsUnique(RANGE)(RANGE range)
+bool elementsUnique(RANGE)(in RANGE range)
 {
     auto duplicate = range.dup;
     duplicate.sort;
