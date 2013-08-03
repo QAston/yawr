@@ -7,7 +7,6 @@
 	"sourceFiles": ["../wowdefs/wowdefs/wow_versions.d"],
 	"dependencies": {
 		"yawr_util": {"version": "~master", "path": "../util"},
-		"yawr_protocol": {"version": "~master", "path": "../protocol"},
 	},
     "configurations": [
         {
