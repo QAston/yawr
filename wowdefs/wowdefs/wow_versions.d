@@ -139,7 +139,7 @@ private immutable Tuple!(WowVersion, Date)[] wowVersionDates = [
 /+
  + Returns WowVersion which was "current" at a given date
  +/
-WowVersion getWowVersion(Date date)
+WowVersion getWowVersion(in Date date)
 {
     if (date < wowVersionDates[0][1])
         return WowVersion.Undefined;
@@ -155,7 +155,7 @@ WowVersion getWowVersion(Date date)
 unittest {
     import util.test;
     import std.traits;
-    mixin (test!((getWowVersion)));
+    mixin (test!("getWowVersion"));
     assert(getWowVersion(Date(2012, 12, 3)) == WowVersion.V5_1_0a_16357);
     assert(getWowVersion(Date(2010, 8, 29)) == WowVersion.V3_3_5a_12340);
     assert(getWowVersion(Date(2003, 12, 3)) == WowVersion.Undefined);
