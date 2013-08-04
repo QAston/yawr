@@ -76,3 +76,83 @@ template ModuleMembersMatching(alias T, alias PRED) if (isModule !T) {
         }
     }
 }
+
+/// Returns sum of .sizeof of all fields in a struct
+template MembersSize(T) if(is(T==struct))
+{
+    enum MembersSize = LoopMembers!(FieldTypeTuple!T);
+    template LoopMembers(members...)
+    {
+        static if (members.length > 0) {
+            enum LoopMembers = members[0].sizeof + LoopMembers!(members[1..$]);
+        }
+        else {
+            enum LoopMembers = 0;
+        }
+    }
+}
+
+/// Returns sum of .sizeof of all fields in a struct recursively
+template RepresentationMembersSize(T) if(is(T==struct))
+{
+    enum RepresentationMembersSize = LoopMembers!(RepresentationTypeTuple!T);
+    template LoopMembers(members...)
+    {
+        static if (members.length > 0) {
+            enum LoopMembers = members[0].sizeof + LoopMembers!(members[1..$]);
+        }
+        else {
+            enum LoopMembers = 0;
+        }
+    }
+}
+
+///
+unittest {
+    struct TestType {
+        ubyte a;
+        ushort b;
+    }
+    struct TestTypeAligned {
+        align(1):
+        ubyte a;
+        ushort b;
+    }
+    align(1) struct AlignedTestTypeAligned {
+        align(1):
+        ubyte a;
+        ushort b;
+    }
+    struct SuperTestType {
+        ubyte a;
+        TestType b;
+        TestType c;
+    }
+    struct SuperTestTypeAligned {
+        align(1):
+        ubyte a;
+        TestType b;
+        TestType c;
+    }
+    struct SuperTestTypeAlignedAligned {
+        align(1):
+        ubyte a;
+        TestTypeAligned b;
+        TestTypeAligned c;
+    }
+    struct SuperAlignedTestTypeAlignedAligned {
+        align(1):
+        ubyte a;
+        AlignedTestTypeAligned b;
+        AlignedTestTypeAligned c;
+    }
+    static assert(MembersSize!TestType == 3);
+    static assert(MembersSize!SuperTestType == 9);
+    static assert(RepresentationMembersSize!SuperTestType == 7);
+    static assert(MembersSize!SuperTestTypeAligned == 9);
+    static assert(RepresentationMembersSize!SuperTestTypeAlignedAligned == 7);
+    static assert(MembersSize!SuperTestTypeAlignedAligned == 9);
+    static assert(RepresentationMembersSize!SuperAlignedTestTypeAlignedAligned == 7);
+    static assert(MembersSize!SuperAlignedTestTypeAlignedAligned == 7);
+    static assert(MembersSize!TestType == RepresentationMembersSize!TestType);
+}
