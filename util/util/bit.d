@@ -14,7 +14,7 @@ BitArray asBitArray(T)(ref T t)
     {
         import util.traits;
         enum size = MembersSize!T;
-        static assert(size == RepresentationMembersSize!T, "Alignment error, structure is not aligned for casting to ubyte[]");
+        static assert(size == RepresentationMembersSize!T && size == T.sizeof, "Alignment error, structure is not aligned for casting to ubyte[]");
     }
     else
         enum size = T.sizeof;
@@ -73,7 +73,7 @@ ubyte[] asByteArray(T)(ref T t)
     {
         import util.traits;
         enum size = MembersSize!T;
-        static assert(size == RepresentationMembersSize!T/* && size == T.sizeof*/, "Alignment error, structure is not aligned for casting to ubyte[]");
+        static assert(size == RepresentationMembersSize!T && size == T.sizeof, "Alignment error, structure is not aligned for casting to ubyte[]");
     }
     else
         enum size = T.sizeof;
@@ -89,7 +89,9 @@ unittest {
     assert(asByteArray(a)[2] == 0x22);
     assert(asByteArray(a)[3] == 0x11);
 
+    align(1)
     struct TestType {
+        align(1):
         ubyte a;
         ushort b;
     }
