@@ -100,7 +100,7 @@ struct ClientAddonsList(bool valDeflatedSize) {
 
     void stream(bool INPUT)(PacketStream!INPUT p)
     {
-        p.deflateBlock!(true, valDeflatedSize)((){
+        p.deflateBlock!(false, valDeflatedSize)((){
             p.valCount!(uint)(addons);
 
             foreach(ref addon; addons)
