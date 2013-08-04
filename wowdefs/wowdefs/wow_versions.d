@@ -1,4 +1,11 @@
+/+
+ + This module provides game version related defines, like client build/patch numbers.
+ +/
 module wowdefs.wow_versions;
+
+import std.traits;
+import std.datetime;
+import std.typecons;
 
 /+
  + Client build numbers which are used to identify versions of the game
@@ -69,9 +76,6 @@ enum WowVersion : ushort {
 	V5_1_0_16309 = 16309,
 	V5_1_0a_16357 = 16357
 }
-
-import std.datetime;
-import std.typecons;
 
 private immutable Tuple!(WowVersion, Date)[] wowVersionDates = [
     tuple(WowVersion.V1_12_1_5875 , Date(2006, 9, 26)), 
@@ -159,4 +163,76 @@ unittest {
     assert(getWowVersion(Date(2012, 12, 3)) == WowVersion.V5_1_0a_16357);
     assert(getWowVersion(Date(2010, 8, 29)) == WowVersion.V3_3_5a_12340);
     assert(getWowVersion(Date(2003, 12, 3)) == WowVersion.Undefined);
+}
+
+/+
+ + Major versions - each expansion introduced a new version of the game
+ + Not refered to as expansion however, as client doesn't have to have MoP expansion to use MajorWowVersion 5
+ +/
+enum MajorWowVersion {
+    Alpha = 0,
+    Vanilla = 1,
+    TBC = 2,
+    WotLK = 3,
+    Cataclysm = 4,
+    MoP = 5,
+}
+
+/+
+ + Represents official client version numeration, eg 3.3.5a
+ +/
+struct PatchInfo
+{
+    MajorWowVersion major;
+    ubyte minor;
+    ubyte bugfix;
+    char hotfix = ' ';
+}
+
+private static PatchInfo[WowVersion] builds;
+
+static this ()
+{
+    import std.conv;
+    import std.string;
+    import std.array;
+    import std.ascii;
+    foreach (wowVersion;EnumMembers!WowVersion)
+    {
+        if (wowVersion != WowVersion.Undefined)
+        {
+            assert(wowVersion !in builds);
+            PatchInfo patch;
+            string ver = wowVersion.to!string()[1..$];
+
+            string[] subVersions = ver.split("_");
+
+            patch.major = (subVersions[0].to!ubyte).to!MajorWowVersion;
+            patch.minor = subVersions[1].to!ubyte;
+            patch.bugfix = subVersions[2][0..1].to!ubyte;
+            if (subVersions[2].length > 1)
+            {
+                assert(subVersions[2][1].isAlpha());
+                patch.hotfix = subVersions[2][1];
+            }
+            assert(subVersions[3].to!ushort == wowVersion);
+            builds[wowVersion] = patch;
+        }
+    }
+}
+
+/+
+ + Returns PatchInfo for a given version_
+ + Returns null when version not defined
+ +/
+PatchInfo* getPatchInfo(WowVersion version_)
+{
+    return version_ in builds;
+}
+
+///
+unittest {
+    assert(getPatchInfo(WowVersion.Undefined) == null);
+    assert(*getPatchInfo(WowVersion.V2_2_3_7359) == PatchInfo(MajorWowVersion.TBC, 2, 3));
+    assert(*getPatchInfo(WowVersion.V3_3_5a_12340) == PatchInfo(MajorWowVersion.WotLK, 3, 5, 'a'));
 }
