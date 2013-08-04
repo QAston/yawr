@@ -1,11 +1,12 @@
 module util.bit;
-/+
- + Returns BitArray providing bitwise access to given type
- + Structure and it's members must be aligned to one byte boundary (align(1))
- +/
+
 import std.bitmanip;
 import std.traits;
 
+/+
+ + Utility for accessing data as bit array
+ + Structure members must be aligned to one byte boundary (align(1))
+ +/
 BitArray asBitArray(T)(ref T t)
 {
     static assert(!hasIndirections!T, "Cannot get bitwise access to types with indirections!");
@@ -23,6 +24,10 @@ BitArray asBitArray(T)(ref T t)
     return bits;
 }
 
+/+
+ + Structure used to represent Bit as a distinct type from bool.
+ + Can be implicitly cast to bool, explicitly to any integral type
+ +/
 struct Bit {
     this(T)(T v) if (isIntegral!T)
     {
@@ -58,7 +63,7 @@ unittest {
 
 /+
  + Utility for accessing data as byte array
- + Structure and it's members must be aligned to one byte boundary (align(1))
+ + Structure members must be aligned to one byte boundary (align(1))
  +/
 ubyte[] asByteArray(T)(ref T t)
 {

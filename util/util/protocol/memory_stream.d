@@ -7,6 +7,10 @@ import vibe.core.stream;
 
 import util.stream;
 
+/+
+ + An utility class which allows reading and writing to a memory stream in single bits
+ + Based on Memory stream from vibe.d library
+ +/
 class BitMemoryStream : RandomAccessStream{
     private {
         MemoryStream data;
@@ -16,11 +20,15 @@ class BitMemoryStream : RandomAccessStream{
         size_t dataSize;
         ubyte[] dataBuffer;
     }
-    void flushBits()
+    private void flushBits()
     {
         bitBuffer = 0;
         bitBufferPos = 0;
     }
+    /+
+     + Args:
+     +   dataBuffer - buffer used by backing stream, can be larget than dataSize and used when resize is called
+     +/
     this(ubyte[] dataBuffer, bool writable = true, size_t dataSize = size_t.max)
     {
         if (dataSize == size_t.max)
@@ -29,22 +37,34 @@ class BitMemoryStream : RandomAccessStream{
         this.dataSize = dataSize;
         this.data = new MemoryStream(dataBuffer, writable, dataSize);
     }
+    /+
+     + Writes bytes to stream
+     + Aligned to single byte in memory - if writeBit was used call will skip remaining part of current byte and write next ones
+     +/
     void write(in ubyte[] bytes, bool do_flush = true)
     {
         enforce(bytes.length <= dataSize - data.tell, "Size limit of memory stream reached.");
         flushBits();
         data.write(bytes, do_flush);
     }
+    /+
+     + Reads bytes from stream
+     + Aligned to single byte in memory - if readBit was used call will skip remaining part of current byte
+     +/
     void read(ubyte[] dst)
     {
         flushBits();
         data.read(dst);
     }
+    /// Changes position in the stream. Resets in-byte position for bit reads
     void seek(ulong offset)
     {
         flushBits();
         data.seek(offset);
     }
+    /+
+     + Reads single bit from the stream
+     +/
     bool readBit()
     {
         if (bitBufferPos == 0)
@@ -57,6 +77,9 @@ class BitMemoryStream : RandomAccessStream{
         return val;
     }
     
+    /+
+     + Writes single bit to the stream.
+     +/
     void writeBit(bool bit)
     {
         if (bitBufferPos != 0)
@@ -73,6 +96,9 @@ class BitMemoryStream : RandomAccessStream{
             flushBits();
     }
 
+    /+
+     + Resizes stream in boundaries of underlying buffer
+     +/
     void resize(size_t newSize)
     {
         enforce(newSize <= dataBuffer.length, "Size limit of memory stream reached.");
@@ -80,6 +106,7 @@ class BitMemoryStream : RandomAccessStream{
         dataSize = newSize;
     }
 
+    ///
 	@property bool empty() { return data.empty(); }
 	@property ulong leastSize() { return data.leastSize(); }
 	@property bool dataAvailableForRead() { return data.dataAvailableForRead; }
@@ -94,6 +121,9 @@ class BitMemoryStream : RandomAccessStream{
 	void write(InputStream stream, ulong nbytes = 0, bool do_flush = true) { writeDefault(stream, nbytes, do_flush); }
 }
 
+/+
+ + Returns string with a hex dump of a stream
+ +/
 public string toHex(STREAM)(STREAM data)
 {
     ulong oldpos = data.tell;

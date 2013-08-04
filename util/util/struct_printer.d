@@ -4,6 +4,10 @@ import std.typetuple;
 import util.traits;
 import std.traits;
 
+/+
+ + Generates a string representation of a given struct
+ + Prints member names and uses more whitespace than builtin toString
+ +/
 string fieldsToString(T)(in T t, in string alignment="")
 {
     import std.array;
