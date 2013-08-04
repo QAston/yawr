@@ -1,3 +1,6 @@
+/+
+ + This module provides PacketStream class and related types
+ +/
 module util.protocol.packet_stream;
 
 import std.array;
@@ -10,15 +13,23 @@ import util.bit;
 import util.protocol.memory_stream;
 import util.algorithm;
 
+/+
+ + An utility class which allows writing and reading data from a memory stream in a neat way
+ + Neat thing is that user can specify a single function which can handle both reading and writing to the stream using the same code
+ + Significantly reduces duplication, makes testing easier and encourages reuse of packet handlers
+ +/
 final class PacketStream(bool input)
 {
     enum isInput = input;
     enum isOutput = !input;
 
     /+
-     + Prarams:
+     + Params:
+     +      input - true for input stream(allows reading), false for output streams
+     + Args:
      +      data - for output packets must be capable of holding all the data, for inputs must have exact size
-    +/ 
+     +      compress/decompress - delegates responsible of handling stream compressions when requested by deflateBlock function
+     +/ 
     static if (input == true)
     {
         this(ubyte[] data, void[] delegate(bool,void[], size_t) decompress) 
@@ -41,6 +52,9 @@ final class PacketStream(bool input)
     BitMemoryStream data;
 
 
+    /+
+     + returns hex dump representation of memory stream
+     +/
     string toHex()
     {
         return data.toHex();
@@ -49,8 +63,8 @@ final class PacketStream(bool input)
     /+
      + input: Copies data from stream to value
      + output: Copies data from value to stream
-     + Parameters:
-     + Format - template functions which handles read/write to stream
+     + Params:
+     +     Format - template functions which handle read/write to stream; allow reading/writing in a non-standard way(ex. asBits)
      +/
     void val(alias Format = identity, T)(ref T value) if (!isNullable!T && isInput)
     {
@@ -82,8 +96,8 @@ final class PacketStream(bool input)
     /+
      + input: Reads boolean indicating if Nullable!val is present from stream
      + output: Writes boolean indicating if Nullable!val is present to stream
-     + Parameters:
-     + Format - template functions which handles read/write to stream
+     + Params:
+     +     Format - template functions which handle read/write to stream; allow reading/writing in a non-standard way(ex. asBits)
      +/
     bool valIs(alias Format = identity, T: Nullable!U, U)(ref T value)
     {
@@ -106,8 +120,9 @@ final class PacketStream(bool input)
     /+
      + input: Copies data from stream to value's length property
      + output: Copies value's length property from value to stream
-     + Parameters:
-     + Format - template functions which handles read/write to stream
+     + Params:
+     +     COUNTER_TYPE - integer type for binary representation in stream
+     +     Format - template functions which handle read/write to stream; allow reading/writing in a non-standard way(ex. asBits)
      +/
     void valCount(COUNTER_TYPE, alias Format = identity, T: U[], U)(ref T value) if (isIntegral!COUNTER_TYPE && isDynamicArray!T)
     {
@@ -138,6 +153,8 @@ final class PacketStream(bool input)
     /+
      + Reads/Writes a given array
      + Works only on types on which val works
+     + Params:
+     +     Format - template functions which handle read/write to stream; allow reading/writing in a non-standard way(ex. asBits)
      +/
     void valArray(alias Format = identity, T: U[], U)(ref T value)
     {
@@ -149,6 +166,8 @@ final class PacketStream(bool input)
 
     /+
      + A sequence of Reads/Writes into an array elements with given indexes
+     + Params:
+     +     Format - template functions which handle read/write to stream; allow reading/writing in a non-standard way(ex. asBits)
      +/
     void valArraySeq(alias Format = identity, T: U[], U)(ref T value, int[] indexes...)
     in {
@@ -164,6 +183,8 @@ final class PacketStream(bool input)
 
     /+
      + Writes/Reads a bit[index] of a given structure
+     + Params:
+     +     Format - template functions which handle read/write to stream; allow reading/writing in a non-standard way(ex. asBits)
      +/
     void valBit(alias Format = identity, T)(ref T value, size_t index)
     {
@@ -265,6 +286,8 @@ final class PacketStream(bool input)
     /+
      + Reads/Writes a value which is not part of packet data structure
      + Used mostly for unknown fields
+     + Params:
+     +     Format - template functions which handle read/write to stream; allow reading/writing in a non-standard way(ex. asBits)
      +/
     T skip(T, alias Format = identity)(T t = T.init)
     {
@@ -354,9 +377,8 @@ template isNullable(T)
     enum isNullable = false;
 }
 
-// packet read/write primitives
-
 /+
+ + A Format parameter for val* functions of PacketStream class
  + Reads/Writes data as bits of given integral type, BITS(number of bits) must be less than bits in type
  +/
 template asBits(byte BITS)
@@ -393,6 +415,7 @@ template asBits(byte BITS)
 }
 
 /+
+ + A Format parameter for val* functions of PacketStream class
  + Reads/Writes string as binary representation of type T
  +/
 template as(T)
@@ -410,7 +433,9 @@ template as(T)
 }
 
 /+
+ + A Format parameter for val* functions of PacketStream class
  + Reads/Writes value as their bin representation
+ + Can read structures which define method: void stream(bool INPUT)(PacketStream)
  +/
 static struct identity
 {
@@ -460,6 +485,7 @@ static struct identity
 }
 
 /+
+ + A Format parameter for val* functions of PacketStream class
  + Reads/Writes string as ASCIIZ
  +/
 static struct asCString
@@ -495,7 +521,7 @@ static struct asCString
 
 unittest {
     import util.test;
-    mixin (test!("packetparser"));
+    mixin (test!("packet_stream"));
 
     ubyte buffer[] = new ubyte[600];
     void valTest(T, alias Format = identity)(T value)
