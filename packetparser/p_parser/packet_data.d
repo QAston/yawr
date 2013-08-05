@@ -95,15 +95,12 @@ static this()
                     return q"[
                         static if(__traits(compiles,]" ~ type ~ q"[))
                         {
-                            mixin("alias ]" ~ type ~ q"[ packetDataType;");
+                            alias ]" ~ type ~ q"[ packetDataType;
                             setEntry(opcode, dir, PacketDataEntry(typeid(packetDataType), &packetPrinter!(packetDataType), &packetDataType.stream!true));
                         }]";
                 }
 
-
-                mixin(generateCheck!("PacketData!(PacketInfo!(Opcode."~ opcodeString  ~"), Direction."~dir.to!string~")")());
-                if (!canParse(opcode, dir))
-                    mixin(generateCheck!("PacketData!(PacketInfo!(Opcode."~ opcodeString  ~"))")());
+                mixin(generateCheck!("PacketData!(PacketInfo!(Opcode."~ opcodeString  ~", Direction."~dir.to!string~"))"));
             }
         }
     }
