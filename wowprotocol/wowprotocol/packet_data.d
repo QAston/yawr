@@ -9,19 +9,32 @@ public import wowprotocol.packet_data_.session;
 import util.protocol.packet_stream;
 import wowprotocol.opcode;
 import util.traits;
+import util.protocol.direction;
+import util.protocol.packet_data;
 
-private struct HandlerEntry {
+struct PacketInfo(Opcode OPCODE)
+{
+    enum op = OPCODE;
+}
+
+struct PacketInfo(Opcode OPCODE, Direction DIR)
+{
+    enum op = OPCODE;
+    enum dir = DIR;
+}
+
+version(unittest)
+{
+import std.traits;
+import std.conv;
+
+private struct PacketDataEntry {
     TypeInfo typeInfo;
     void function(PacketStream!true) inputHandler;
     void function(PacketStream!false) outputHandler;
 }
 
-private static HandlerEntry[Opcode] handlers;
-
-struct PacketInfo(Opcode OPCODE)
-{
-    enum opcode = OPCODE;
-}
+private static PacketDataEntry*[2][Opcode] handlers;
 
 static this()
 {
@@ -31,64 +44,54 @@ static this()
         if (cast(ushort)opcode == UNKNOWN_OPCODE)
             continue;
 
-        mixin(q{
-        static if(__traits(compiles, PacketData!(PacketInfo!(Opcode.}~ opcodeString ~q{))))
+        foreach(Direction dir; EnumMembers!Direction)
         {
-            mixin("alias PacketData!(PacketInfo!(Opcode."~ opcodeString ~")) packetDataType;");
-
-            handlers[opcode] = HandlerEntry(typeid(packetDataType), &packetDataType.stream!true, &packetDataType.stream!false);
-        }});
+            void registerOpcodeHandler(alias packetDataType)()
+            {
+                handlers[opcode][dir] = PacketDataEntry(typeid(packetDataType), &packetDataType.stream!true, &packetDataType.stream!false);
+            }
+        }
     }
 }
 /+
  + Checks if opcode handler is present
  +/
-bool canStreamPacket(Opcode op)
+private bool canStreamPacket(Opcode op, Direction dir)
 {
-    return (op in handlers) !is null;
+    return getEntry(op,dir) !is null;
+}
+
+private PacketDataEntry* getEntry(Opcode op, Direction dir)
+{
+    auto dirs = op in handlers;
+    if (dirs is null)
+        return null;
+    return (*dirs)[dir];
 }
 
 /++
- + Reads packetData from a given packet stream
+ + Reads packetData from a given inputStream
  +/
-void[] read(PacketStream!true packet, Opcode opcode)
+private void[] read(PacketStream!true inputStream, Opcode opcode, Direction dir)
 in {
-    assert (canStreamPacket(opcode));
+    assert (canStreamPacket(opcode, dir));
 }
 body {
-
-    HandlerEntry handlerEntry = handlers[opcode];
-    void[] packetData = void;
-    if (handlerEntry.typeInfo.init().ptr is null)
-    {
-        packetData = cast(void[])new ubyte[handlerEntry.typeInfo.tsize()];
-    }
-    else
-    {
-        packetData = (handlerEntry.typeInfo.init()).dup;
-    }
-
-    void delegate(PacketStream!true) caller;
-    caller.ptr = packetData.ptr;
-    caller.funcptr = handlerEntry.inputHandler;
-    caller(packet);
-    return packetData;
+    PacketDataEntry PacketDataEntry = *(handlers[opcode][dir]);
+    return util.protocol.packet_data.read(inputStream, PacketDataEntry.typeInfo, PacketDataEntry.inputHandler);
 }
 
 /++
- + Writes given packetData to a packet stream
+ + Writes given packetData to a outputStream
  +/
-void write(PacketStream!false packet, Opcode opcode, void[] packetData)
+private void write(PacketStream!false outputStream, Opcode opcode, Direction dir, void[] packetData)
 in {
-    assert (canStreamPacket(opcode));
+    assert(canStreamPacket(opcode, dir));
 }
 body {
-    HandlerEntry handlerEntry = handlers[opcode];
-    assert(packetData.length == handlerEntry.typeInfo.tsize());
-    void delegate(PacketStream!false) caller;
-    caller.ptr = packetData.ptr;
-    caller.funcptr = handlerEntry.outputHandler;
-    caller(packet);
+    PacketDataEntry PacketDataEntry = *(handlers[opcode][dir]);
+    util.protocol.packet_data.write(outputStream, PacketDataEntry.typeInfo, PacketDataEntry.outputHandler, packetData);
+}
 }
 
 unittest {

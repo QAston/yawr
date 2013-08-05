@@ -5,7 +5,7 @@ import wowdefs.wow_version;
 import util.protocol.packet_stream;
 import wowprotocol.packet_data;
 
-struct PacketData(PACKET_INFO : PacketInfo!(Opcode.SMSG_AUTH_CHALLENGE)) {
+struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE) {
     uint[8] key;
     uint serverSeed;
     bool unk;
@@ -36,7 +36,7 @@ struct PacketData(PACKET_INFO : PacketInfo!(Opcode.SMSG_AUTH_CHALLENGE)) {
     }
 }
 
-struct PacketData(PACKET_INFO : PacketInfo!(Opcode.CMSG_AUTH_SESSION)) {
+struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION) {
     byte[20] sha;
     WowVersion build;
     char[] accountName;
@@ -115,7 +115,7 @@ struct ClientAddonsList(bool valDeflatedSize) {
     }
 }
 
-struct PacketData(PACKET_INFO : PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED))
+struct PacketData(PACKET) if(PACKET.op == (Opcode.SMSG_MOVE_SET_RUN_SPEED))
 {
     uint unk;
     float speed;
@@ -131,5 +131,6 @@ struct PacketData(PACKET_INFO : PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED))
 }
 
 unittest {
-    auto data = PacketData!(PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED))(0,0,0);
+    auto data = PacketData!(PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED))();
+    //auto d = PacketData!(uint)();
 }
