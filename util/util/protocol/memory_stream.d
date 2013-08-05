@@ -17,7 +17,6 @@ class BitMemoryStream : RandomAccessStream{
         // buffer for streaming in bits
         ubyte bitBuffer;
         ubyte bitBufferPos;
-        size_t dataSize;
         ubyte[] dataBuffer;
     }
     private void flushBits()
@@ -29,13 +28,10 @@ class BitMemoryStream : RandomAccessStream{
      + Args:
      +   dataBuffer - buffer used by backing stream, can be larget than dataSize and used when resize is called
      +/
-    this(ubyte[] dataBuffer, bool writable = true, size_t dataSize = size_t.max)
+    this(ubyte[] dataBuffer, bool writable = true, size_t initialSize = size_t.max)
     {
-        if (dataSize == size_t.max)
-            dataSize = dataBuffer.length;
         this.dataBuffer = dataBuffer;
-        this.dataSize = dataSize;
-        this.data = new MemoryStream(dataBuffer, writable, dataSize);
+        this.data = new MemoryStream(dataBuffer, writable, initialSize);
     }
     /+
      + Writes bytes to stream
@@ -43,7 +39,6 @@ class BitMemoryStream : RandomAccessStream{
      +/
     void write(in ubyte[] bytes, bool do_flush = true)
     {
-        enforce(bytes.length <= dataSize - data.tell, "Size limit of memory stream reached.");
         flushBits();
         data.write(bytes, do_flush);
     }
@@ -84,9 +79,6 @@ class BitMemoryStream : RandomAccessStream{
     {
         if (bitBufferPos != 0)
             data.seek(data.tell-1);
-        else
-            enforce(1 <= dataSize - data.tell, "Size limit of memory stream reached.");
-
         bitBuffer |= (bit ? 1 : 0) << (7 - bitBufferPos);
         data.swrite!ubyte(bitBuffer);
 
@@ -96,14 +88,9 @@ class BitMemoryStream : RandomAccessStream{
             flushBits();
     }
 
-    /+
-     + Resizes stream in boundaries of underlying buffer
-     +/
-    void resize(size_t newSize)
+    ubyte[] getData()
     {
-        enforce(newSize <= dataBuffer.length, "Size limit of memory stream reached.");
-        assert(newSize > tell);
-        dataSize = newSize;
+        return dataBuffer[0..cast(size_t)size()];
     }
 
     ///
@@ -152,7 +139,7 @@ public string toHex(STREAM)(STREAM data)
             {
                 data.seek(j + i);
                 auto val = data.sread!ubyte;
-                formattedWrite(hex , "%2X ", val);
+                formattedWrite(hex , "%02X ", val);
 
                 if (val.isPrintable)
                     text.put(val);
@@ -228,31 +215,4 @@ unittest {
     assert(stream.readBit == true);
     assert(stream.readBit == false);
     assert(stream.readBit == false);
-}
-
-unittest {
-    import util.test;
-    test!("BitMemoryStream - resize");
-
-    ubyte buffer[] = new ubyte[20];
-    BitMemoryStream stream = new BitMemoryStream(buffer, true, 10);
-
-    foreach(i; 0..10)
-    {
-        stream.swrite(cast(ubyte)i);
-    }
-
-    assertThrown!(Throwable)(stream.swrite!byte(11));
-
-    stream.resize(15);
-    stream.swrite!byte(11);
-    stream.swrite!byte(11);
-    stream.swrite!byte(11);
-    stream.swrite!byte(11);
-    stream.swrite!byte(11);
-    assertThrown!(Throwable)(stream.writeBit(true));
-    stream.resize(20);
-
-    assertThrown!(Throwable)(stream.resize(21));
-    assertThrown!(Throwable)(stream.resize(2));
 }
