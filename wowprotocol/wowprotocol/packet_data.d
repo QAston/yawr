@@ -8,14 +8,10 @@ public import wowprotocol.packet_data_.session;
 
 import util.protocol.packet_stream;
 import wowprotocol.opcode;
+import wowprotocol.session;
 import util.traits;
 import util.protocol.direction;
 import util.protocol.packet_data;
-
-struct PacketInfo(Opcode OPCODE)
-{
-    enum op = OPCODE;
-}
 
 struct PacketInfo(Opcode OPCODE, Direction DIR)
 {
@@ -23,76 +19,92 @@ struct PacketInfo(Opcode OPCODE, Direction DIR)
     enum dir = DIR;
 }
 
-version(unittest)
-{
-import std.traits;
-import std.conv;
-
-private struct PacketDataEntry {
-    TypeInfo typeInfo;
-    void function(PacketStream!true) inputHandler;
-    void function(PacketStream!false) outputHandler;
-}
-
-private static PacketDataEntry*[2][Opcode] handlers;
-
-static this()
-{
-    foreach(opcodeString;__traits(allMembers, Opcode))
-    {
-        mixin("Opcode opcode = Opcode." ~ opcodeString ~ ";");
-        if (cast(ushort)opcode == UNKNOWN_OPCODE)
-            continue;
-
-        foreach(Direction dir; EnumMembers!Direction)
-        {
-            void registerOpcodeHandler(alias packetDataType)()
-            {
-                handlers[opcode][dir] = PacketDataEntry(typeid(packetDataType), &packetDataType.stream!true, &packetDataType.stream!false);
-            }
-        }
-    }
-}
 /+
- + Checks if opcode handler is present
+ + Checks that PacketData can be written to stream and reread from it and have same value
  +/
-private bool canStreamPacket(Opcode op, Direction dir)
+void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Direction DIR)(DATA_TYPE inputData)
 {
-    return getEntry(op,dir) !is null;
+    import util.test;
+    import std.stdio;
+    import util.struct_printer;
+    alias typeof(inputData) PacketDataType;
+    mixin(test!("WowProtocol-"~PacketDataType.stringof));
+
+    scope(failure)
+    {
+        writeln("Input packet data:");
+        writeln(fieldsToString(inputData));
+    }
+
+    // generate outputBinary from outputPacketData
+    ubyte outputBinary[] = new ubyte[1024*1024*4];
+    auto outputStream = new PacketStream!false(outputBinary, &((new Session()).compress));
+    scope(failure)
+    {
+        writeln("Output binary:");
+        writeln(outputStream.toHex);
+    }
+    outputStream.val(inputData);
+
+    PacketDataType outputPacketData;
+    scope(failure)
+    {
+        writeln("Output packet data:");
+        writeln(fieldsToString(outputPacketData));
+    }
+    // generate outputPacketData from inputBinary
+    auto inputStream = new PacketStream!true(outputStream.getData(), &((new Session()).decompress));
+    inputStream.val(outputPacketData);
+    assert(outputPacketData == inputData);
 }
 
-private PacketDataEntry* getEntry(Opcode op, Direction dir)
+
+/+
+ + Checks that PacketData definition works as expected with given binary input
+ + Params:
+ +    inputBinary - binary data to test
+ +    expectedResult - data, which should be result of reading the inputBinary
+ +/
+void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Direction DIR)(ubyte[] inputBinary, DATA_TYPE expectedResult)
 {
-    auto dirs = op in handlers;
-    if (dirs is null)
-        return null;
-    return (*dirs)[dir];
+    import util.test;
+    import std.stdio;
+    import util.struct_printer;
+    alias typeof(expectedResult) PacketDataType;
+    mixin(test!("WowProtocol-"~PacketDataType.stringof));
+
+    PacketDataType outputPacketData;
+    // generate outputPacketData from inputBinary
+    auto inputStream = new PacketStream!true(inputBinary, &((new Session()).decompress));
+    scope(failure)
+    {
+        writeln("Input binary:");
+        writeln(inputStream.toHex);
+        writeln("Expected result:");
+        writeln(fieldsToString(expectedResult));
+    }
+    inputStream.val(outputPacketData);
+    assert(outputPacketData == expectedResult);
+    scope(failure)
+    {
+        writeln("Output packet data:");
+        writeln(fieldsToString(outputPacketData));
+    }
+    // generate outputBinary from outputPacketData
+    ubyte outputBinary[] = new ubyte[inputBinary.length*4];
+    auto outputStream = new PacketStream!false(outputBinary, &((new Session()).compress));
+    scope(failure)
+    {
+        writeln("Output binary:");
+        writeln(outputStream.toHex);
+    }
+    outputStream.val(outputPacketData);
+
+    assert(outputStream.getData() == inputBinary);
 }
 
-/++
- + Reads packetData from a given inputStream
- +/
-private void[] read(PacketStream!true inputStream, Opcode opcode, Direction dir)
-in {
-    assert (canStreamPacket(opcode, dir));
-}
-body {
-    PacketDataEntry PacketDataEntry = *(handlers[opcode][dir]);
-    return util.protocol.packet_data.read(inputStream, PacketDataEntry.typeInfo, PacketDataEntry.inputHandler);
-}
-
-/++
- + Writes given packetData to a outputStream
- +/
-private void write(PacketStream!false outputStream, Opcode opcode, Direction dir, void[] packetData)
-in {
-    assert(canStreamPacket(opcode, dir));
-}
-body {
-    PacketDataEntry PacketDataEntry = *(handlers[opcode][dir]);
-    util.protocol.packet_data.write(outputStream, PacketDataEntry.typeInfo, PacketDataEntry.outputHandler, packetData);
-}
-}
-
-unittest {
+/// ditto
+void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Direction DIR)(string inputBinary, DATA_TYPE expectedResult)
+{
+    testPacketData(cast(ubyte[])inputBinary, expectedResult);
 }
