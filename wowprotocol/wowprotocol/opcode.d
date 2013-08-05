@@ -5,6 +5,7 @@ module wowprotocol.opcode;
 
 import wowdefs.wow_version;
 import std.conv;
+import std.algorithm;
 
 import util.protocol.direction;
 
@@ -24,7 +25,7 @@ string opcodeToString(Opcode opcode)
 
 unittest {
     assert(opcodeToString(cast(Opcode)UNKNOWN_OPCODE) == "<unknown opcode> 0");
-    assert(opcodeToString(Opcode.SMSG_NEW_WORLD) == "SMSG_NEW_WORLD");
+    assert(opcodeToString(Opcode.SMSG_NEW_WORLD).startsWith("SMSG_NEW_WORLD"));
 }
 
 /+
