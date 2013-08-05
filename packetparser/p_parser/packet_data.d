@@ -88,23 +88,23 @@ static this()
 
         foreach(Direction dir; EnumMembers!Direction)
         {
-            import std.stdio;
-            writeln(dir);
-            writeln(opcodeString);
-            string generateCheck(string type)()
+            if (hasDirection(opcode, dir))
             {
-                return q"[
-                    static if(__traits(compiles,]" ~ type ~ q"[))
-                    {
-                        mixin("alias ]" ~ type ~ q"[ packetDataType;");
-                        if (!canParse(opcode, dir))
+                string generateCheck(string type)()
+                {
+                    return q"[
+                        static if(__traits(compiles,]" ~ type ~ q"[))
+                        {
+                            mixin("alias ]" ~ type ~ q"[ packetDataType;");
                             setEntry(opcode, dir, PacketDataEntry(typeid(packetDataType), &packetPrinter!(packetDataType), &packetDataType.stream!true));
-                    }]";
+                        }]";
+                }
+
+
+                mixin(generateCheck!("PacketData!(PacketInfo!(Opcode."~ opcodeString  ~"), Direction."~dir.to!string~")")());
+                if (!canParse(opcode, dir))
+                    mixin(generateCheck!("PacketData!(PacketInfo!(Opcode."~ opcodeString  ~"))")());
             }
-
-
-            mixin(generateCheck!("PacketData!(PacketInfo!(Opcode."~ opcodeString  ~"), Direction."~dir.to!string~")")());
-            mixin(generateCheck!("PacketData!(PacketInfo!(Opcode."~ opcodeString  ~"))")());
         }
     }
 }
