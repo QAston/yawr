@@ -43,10 +43,21 @@ final class PacketStream(bool input)
     {
         this(ubyte[] data, void[] delegate(bool,void[]) compress)
         {
-            this.data = new BitMemoryStream(data, isOutput);
+            this.data = new BitMemoryStream(data, isOutput, 0);
             this.compress = compress;
         }
         private void[] delegate(bool,void[]) compress;
+    }
+
+    static if(isOutput)
+    {
+        /+
+         + Returns data written so far to the stream
+         +/
+        ubyte[] getData()
+        {
+            return data.getData();
+        }
     }
 
     BitMemoryStream data;
