@@ -3,6 +3,7 @@ module wowprotocol.packet_data_.session;
 import wowprotocol.opcode;
 import wowdefs.wow_version;
 import util.protocol.packet_stream;
+import util.protocol.direction;
 import wowprotocol.packet_data;
 
 struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE) {
@@ -23,17 +24,10 @@ struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE) {
         p.val(serverSeed);
         p.val(unk);
     }
+}
 
-    //@Test()
-    void test()
-    {
-        foreach (i, ref k; key)
-        {
-            k = i;
-        }
-        serverSeed = 1234;
-        unk = 1;
-    }
+unittest {
+    testPacketData(PacketData!(PacketInfo!(Opcode.SMSG_AUTH_CHALLENGE, Direction.c2s))());
 }
 
 struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION) {
@@ -85,6 +79,14 @@ struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION) {
     }
 }
 
+unittest {
+    import std.conv;
+    auto t1 = PacketData!(PacketInfo!(Opcode.CMSG_AUTH_SESSION, Direction.c2s))();
+    t1.accountName = "asd".to!(char[]);
+    t1.clientAddonsList.addons = [Addon("addon1", true, 0, 0), Addon("addon2", false, 0, 0)];
+    testPacketData(t1);
+}
+
 struct Addon {
     string name;
     bool enabled;
@@ -115,7 +117,7 @@ struct ClientAddonsList(bool valDeflatedSize) {
     }
 }
 
-struct PacketData(PACKET) if(PACKET.op == (Opcode.SMSG_MOVE_SET_RUN_SPEED))
+struct PacketData(PACKET) if(PACKET.op == (Opcode.SMSG_MOVE_SET_RUN_SPEED) && PACKET.dir==Direction.s2c)
 {
     uint unk;
     float speed;
@@ -131,6 +133,6 @@ struct PacketData(PACKET) if(PACKET.op == (Opcode.SMSG_MOVE_SET_RUN_SPEED))
 }
 
 unittest {
-    auto data = PacketData!(PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED))();
-    //auto d = PacketData!(uint)();
+    testPacketData(x"5E 05 E2 10 00 00 00 00 00 E0 40 D9 07 57", PacketData!(PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c))(16, 7, 432345564300370904));
+    testPacketData(PacketData!(PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c))(16, 7, 432345564300370904));
 }
