@@ -828,7 +828,7 @@ unittest {
         struct TestS {
             uint a;
             bool b;
-            void stream(bool INPUT)(PacketStream!INPUT p)
+            void stream(PACKET_STREAM)(PACKET_STREAM p)
             {
                 p.val(a);
                 p.val(b);

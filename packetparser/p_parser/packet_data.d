@@ -96,7 +96,7 @@ static this()
                         static if(__traits(compiles,]" ~ type ~ q"[))
                         {
                             alias ]" ~ type ~ q"[ packetDataType;
-                            setEntry(opcode, dir, PacketDataEntry(typeid(packetDataType), &packetPrinter!(packetDataType), &packetDataType.stream!true));
+                            setEntry(opcode, dir, PacketDataEntry(typeid(packetDataType), &packetPrinter!(packetDataType), &packetDataType.stream!(PacketStream!true)));
                         }]";
                 }
 

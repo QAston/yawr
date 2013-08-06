@@ -11,7 +11,7 @@ struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE) {
     uint serverSeed;
     bool unk;
 
-    void stream(bool INPUT)(PacketStream!INPUT p)
+    void stream(PACKET_STREAM)(PACKET_STREAM p)
     {
         p.val(key[0]);
         p.val(key[1]);
@@ -37,7 +37,7 @@ struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION) {
     uint clientSeed;
     ClientAddonsList!(true) clientAddonsList;
 
-    void stream(bool INPUT)(PacketStream!INPUT p)
+    void stream(PACKET_STREAM)(PACKET_STREAM p)
     {
         p.skip!uint;
         p.skip!uint;
@@ -100,7 +100,7 @@ struct ClientAddonsList(bool valDeflatedSize) {
 
     Time time;
 
-    void stream(bool INPUT)(PacketStream!INPUT p)
+    void stream(PACKET_STREAM)(PACKET_STREAM p)
     {
         p.deflateBlock!(false, valDeflatedSize)((){
             p.valCount!(uint)(addons);
@@ -122,7 +122,7 @@ struct PacketData(PACKET) if(PACKET.op == (Opcode.SMSG_MOVE_SET_RUN_SPEED) && PA
     uint unk;
     float speed;
     ulong guid;
-    void stream(bool INPUT)(PacketStream!INPUT p)
+    void stream(PACKET_STREAM)(PACKET_STREAM p)
     {
         p.valPackMarkByteSeq(guid, 6, 1, 5, 2, 7, 0, 3, 4);
         p.valPackByteSeq(guid, 5,3,1,4);
