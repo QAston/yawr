@@ -494,6 +494,16 @@ class BlockSize(bool INPUT : false, SIZE_TYPE, bool INCLUDE_SIZE)
     }
 }
 
+/// Converts a delegate into a struct useable with PacketStream!INPUT.val
+struct Block(bool INPUT)
+{
+    void delegate(PacketStream!INPUT) stream;
+}
+
+unittest {
+    Block!true((PacketStream!true p){}).stream(null);
+}
+
 class PacketException : Exception
 {
     this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
