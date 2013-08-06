@@ -17,6 +17,7 @@ import util.algorithm;
  + An utility class which allows writing and reading data from a memory stream in a neat way
  + Neat thing is that user can specify a single function which can handle both reading and writing to the stream using the same code
  + Significantly reduces duplication, makes testing easier and encourages reuse of packet handlers
+ + val* functions here mimic the way blizzard is sending packet data, some of them are made specially for patterns found in those
  +/
 final class PacketStream(bool input)
 {
@@ -307,6 +308,98 @@ final class PacketStream(bool input)
     }
 
     /+
+     + Specifies a block of data which size will be read/written by valBlockSize function
+     + If possible - use valBlockSize(del) shorthand instead - it covers most of cases
+     + Args:
+     +    blockSize - result of valBlockSize function
+     +    del - delegate grouping reads/writes of data
+     +/
+    void block(BLOCK_SIZE_TYPE: BlockSize!(input,SIZE_TYPE, INCLUDE_SIZE), SIZE_TYPE, bool INCLUDE_SIZE)(BLOCK_SIZE_TYPE blockSize, void delegate() del)
+    {
+        static if (isInput)
+        {
+            SIZE_TYPE size = blockSize.expectedSize;
+            static if (INCLUDE_SIZE)
+                size -= SIZE_TYPE.sizeof;
+
+            auto readBuff = data.sreadBytes(size);
+
+            auto oldStream = this.data;
+            this.data = new BitMemoryStream(readBuff, isOutput);
+            scope(exit)
+                this.data = oldStream;
+
+            del();
+
+            if (data.tell != data.size)
+                throw new PacketException("Data block was not fully read");
+        }
+        else
+        {
+            auto oldPos = data.tell;
+            del();
+            auto newPos = data.tell;
+            SIZE_TYPE size = cast(SIZE_TYPE)(newPos - oldPos);
+
+            auto oldStream = this.data;
+            this.data = blockSize.stream;
+            scope(exit)
+                this.data = oldStream;
+
+            auto oldBlockSizeStreamPos = this.data.tell;
+            this.data.seek(blockSize.pos);
+            scope(exit)
+                this.data.seek(oldBlockSizeStreamPos);
+
+            static if (INCLUDE_SIZE)
+                size += SIZE_TYPE.sizeof;
+
+            val(size);
+        }
+    }
+
+    /+
+     + Indicates that size of a block of data will be read/written in the place of the call
+     + Returns a parameter to block function which specifies block of data, which size will be written/read
+     + Should be used in conjuction block function
+     + If possible - use valBlockSize(del) shorthand instead - it covers most of cases
+     + Params:
+     +    SIZE_TYPE - integral type to be used as size
+     +    INCLUDE_SIZE - true if block size written/read should include SIZE_TYPE.sizeof
+     +/
+    BlockSize!(input,SIZE_TYPE, INCLUDE_SIZE) valBlockSize(SIZE_TYPE, bool INCLUDE_SIZE)() if (isIntegral!SIZE_TYPE)
+    {
+        SIZE_TYPE size;
+        auto block = new BlockSize!(input,SIZE_TYPE, INCLUDE_SIZE);
+        static if (isInput)
+        {
+            val(size);
+            block.expectedSize = size;
+        }
+        else
+        {
+            // save place to write block size to
+            block.stream = this.data;
+            block.pos = this.data.tell;
+            // put a placeholder value in the stream
+            val(size);
+        }
+        return block;
+    }
+
+    /+
+     + Reads/Writes size of a block of data followed by that block
+     + Params:
+     +    SIZE_TYPE - integral type to be used as size
+     +    INCLUDE_SIZE - true if block size written/read should include SIZE_TYPE.sizeof
+     +/
+    void valBlockSize(SIZE_TYPE, bool INCLUDE_SIZE)(void delegate() del) if (isIntegral!SIZE_TYPE)
+    {
+        auto blockSize = valBlockSize!(SIZE_TYPE, INCLUDE_SIZE)();
+        block(blockSize, del);
+    }
+
+    /+
      + Reads/Writes compressed data from inside del to a packet
      + Format: [optional compressed size][decompressed size][compressed data]
      + Params: 
@@ -337,13 +430,13 @@ final class PacketStream(bool input)
             auto oldStream = this.data;
 
             this.data = new BitMemoryStream(cast(ubyte[])(readBuff), isOutput);
+            scope(exit)
+                this.data = oldStream;
 
             del();
 
             if (data.tell != data.size)
                 throw new PacketException("Decompressed data was not fully read");
-
-            this.data = oldStream;
         }
         else
         {
@@ -367,6 +460,21 @@ final class PacketStream(bool input)
 
             data.write(cast(ubyte[])compressedBuff);
         }
+    }
+}
+
+/// Helper class for block function
+class BlockSize(bool INPUT : true, SIZE_TYPE, bool INCLUDE_SIZE)
+{
+    private SIZE_TYPE expectedSize;
+}
+
+/// ditto
+class BlockSize(bool INPUT : false, SIZE_TYPE, bool INCLUDE_SIZE)
+{
+    private {
+        BitMemoryStream stream;
+        ulong pos;
     }
 }
 
@@ -502,7 +610,7 @@ static struct identity
 static struct asCString
 {
     import std.conv;
-    import std.traits;
+    
 
     static void write(VAL)(PacketStream!false p, ref VAL val) if (isSomeString!VAL)
     {
@@ -724,6 +832,55 @@ unittest {
         valTest!(A, asBits!4)(A.a);
     }
 
+
+    void valTestBlockSize(SIZE_TYPE, bool INCLUDE_SIZE)()
+    {
+        struct Addon {
+            string name;
+            bool enabled;
+            int crc;
+            uint unknown;
+        }
+
+        auto addon = Addon("asd", true, 123, 5);
+        size_t size;
+
+        {
+            auto output = new PacketStream!false(buffer, null);
+            auto blockSize = output.valBlockSize!(SIZE_TYPE, INCLUDE_SIZE)();
+            output.val(addon.unknown);
+            output.block(blockSize, (){
+                output.val!(asCString)(addon.name);
+                output.val(addon.enabled);
+                output.val(addon.crc);
+                
+            });
+            size = cast(size_t)output.data.tell;
+        }
+
+        Addon readValue;
+        {
+            auto input = new PacketStream!true(buffer[0..size], null);
+            auto blockSize = input.valBlockSize!(SIZE_TYPE, INCLUDE_SIZE)();
+            input.val(readValue.unknown);
+            input.block(blockSize, (){
+                input.val!(asCString)(readValue.name);
+                input.val(readValue.enabled);
+                input.val(readValue.crc);
+            });
+        }
+        assert(addon == readValue);
+    }
+
+    {
+        mixin (test!("packetparser - blockSize"));
+
+        valTestBlockSize!(uint, true)();
+        valTestBlockSize!(uint, false)();
+        valTestBlockSize!(ushort, false)();
+        valTestBlockSize!(ushort, true)();
+    }
+
     void valTestDeflate(bool STREAM, bool WRITE_SIZE)()
     {
         import std.zlib;
@@ -797,7 +954,6 @@ unittest {
 
         auto s = TestS2(68);
 
-        
         valTestBit!(ulong)(78542324);
         valTestBit!(TestS2)(s);
     }
