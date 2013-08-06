@@ -24,38 +24,7 @@ struct PacketInfo(Opcode OPCODE, Direction DIR)
  +/
 void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Direction DIR)(DATA_TYPE inputData)
 {
-    import util.test;
-    import std.stdio;
-    import util.struct_printer;
-    alias typeof(inputData) PacketDataType;
-    mixin(test!("WowProtocol-"~PacketDataType.stringof));
-
-    scope(failure)
-    {
-        writeln("Input packet data:");
-        writeln(fieldsToString(inputData));
-    }
-
-    // generate outputBinary from outputPacketData
-    ubyte outputBinary[] = new ubyte[1024*1024*4];
-    auto outputStream = new PacketStream!false(outputBinary, &((new Session()).compress));
-    scope(failure)
-    {
-        writeln("Output binary:");
-        writeln(outputStream.toHex);
-    }
-    outputStream.val(inputData);
-
-    PacketDataType outputPacketData;
-    scope(failure)
-    {
-        writeln("Output packet data:");
-        writeln(fieldsToString(outputPacketData));
-    }
-    // generate outputPacketData from inputBinary
-    auto inputStream = new PacketStream!true(outputStream.getData(), &((new Session()).decompress));
-    inputStream.val(outputPacketData);
-    assert(outputPacketData == inputData);
+    util.protocol.packet_data.testPacketData!((ubyte[] buffer)=>new PacketStream!false(buffer, &((new Session()).compress)),(ubyte[] buffer)=>new PacketStream!true(buffer, &((new Session()).decompress)))(inputData);
 }
 
 
@@ -67,40 +36,7 @@ void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Dire
  +/
 void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Direction DIR)(ubyte[] inputBinary, DATA_TYPE expectedResult)
 {
-    import util.test;
-    import std.stdio;
-    import util.struct_printer;
-    alias typeof(expectedResult) PacketDataType;
-    mixin(test!("WowProtocol-"~PacketDataType.stringof));
-
-    PacketDataType outputPacketData;
-    // generate outputPacketData from inputBinary
-    auto inputStream = new PacketStream!true(inputBinary, &((new Session()).decompress));
-    scope(failure)
-    {
-        writeln("Input binary:");
-        writeln(inputStream.toHex);
-        writeln("Expected result:");
-        writeln(fieldsToString(expectedResult));
-    }
-    inputStream.val(outputPacketData);
-    assert(outputPacketData == expectedResult);
-    scope(failure)
-    {
-        writeln("Output packet data:");
-        writeln(fieldsToString(outputPacketData));
-    }
-    // generate outputBinary from outputPacketData
-    ubyte outputBinary[] = new ubyte[inputBinary.length*4];
-    auto outputStream = new PacketStream!false(outputBinary, &((new Session()).compress));
-    scope(failure)
-    {
-        writeln("Output binary:");
-        writeln(outputStream.toHex);
-    }
-    outputStream.val(outputPacketData);
-
-    assert(outputStream.getData() == inputBinary);
+    util.protocol.packet_data.testPacketData!((ubyte[] buffer)=>new PacketStream!false(buffer, &((new Session()).compress)),(ubyte[] buffer)=>new PacketStream!true(buffer, &((new Session()).decompress)))(inputBinary, expectedResult);
 }
 
 /// ditto
