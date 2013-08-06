@@ -38,7 +38,13 @@ final class PacketStream(bool input)
             this.data = new BitMemoryStream(data, isOutput);
             this.decompress = decompress;
         }
+        this(InputBitStream data, void[] delegate(bool,void[], size_t) decompress) 
+        {
+            this.data = data;
+            this.decompress = decompress;
+        }
         private void[] delegate(bool,void[], size_t) decompress;
+        InputBitStream data;
     }
     else
     {
@@ -48,6 +54,7 @@ final class PacketStream(bool input)
             this.compress = compress;
         }
         private void[] delegate(bool,void[]) compress;
+        BitMemoryStream data;
     }
 
     static if(isOutput)
@@ -61,15 +68,14 @@ final class PacketStream(bool input)
         }
     }
 
-    BitMemoryStream data;
-
-
     /+
      + returns hex dump representation of memory stream
      +/
     string toHex()
     {
-        return data.toHex();
+        if (auto randStr = cast(RandomAccessBitStream)data)
+            return randStr.toHex();
+        assert(false, "Can't print data from non-random access stream");
     }
 
     /+
@@ -331,8 +337,11 @@ final class PacketStream(bool input)
 
             del();
 
-            if (data.tell != data.size)
-                throw new PacketException("Data block was not fully read");
+            if (auto randStr = cast(RandomAccessBitStream)data)
+            {
+                if (randStr.tell != randStr.size)
+                    throw new PacketException("Data block was not fully read");
+            }
         }
         else
         {
@@ -423,7 +432,11 @@ final class PacketStream(bool input)
             static if (WITH_SIZE)
                 auto compressedData = data.sreadBytes(cast(size_t)compressedSize);
             else
-                auto compressedData = data.sreadBytes(cast(size_t)(data.size - data.tell));
+            {
+                auto rand = cast(RandomAccessBitStream)data;
+                assert(rand);
+                auto compressedData = data.sreadBytes(cast(size_t)(rand.size - rand.tell));
+            }
 
             void[] readBuff = decompress(DEFLATE_STREAM, compressedData, uncompressedSize);
 
@@ -435,8 +448,11 @@ final class PacketStream(bool input)
 
             del();
 
-            if (data.tell != data.size)
-                throw new PacketException("Decompressed data was not fully read");
+            if (auto randStr = cast(RandomAccessBitStream)data)
+            {
+                if (randStr.tell != randStr.size)
+                    throw new PacketException("Data block was not fully read");
+            }
         }
         else
         {

@@ -11,7 +11,7 @@ import util.stream;
  + An utility class which allows reading and writing to a memory stream in single bits
  + Based on Memory stream from vibe.d library
  +/
-class BitMemoryStream : RandomAccessStream{
+class BitMemoryStream : RandomAccessBitStream{
     private {
         MemoryStream data;
         // buffer for streaming in bits
