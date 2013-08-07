@@ -114,7 +114,6 @@ final class PacketStream(bool input)
     /// ditto
     void val(alias Format = identity, T : Opt!U, U)(ref T value) if (isInput)
     {
-        value = U.init;
         value = Format.read!U(this);
     }
 
@@ -529,10 +528,10 @@ struct Opt(T)
 {
     this(T value)
     {
-        optStruct = Nullable!T(value);
+        optStruct = value;
     }
+    mixin Proxy!optStruct;
     Nullable!T optStruct;
-    alias optStruct this;
 }
 
 /+
@@ -543,10 +542,11 @@ struct MarkedOpt(T)
 {
     this(T value)
     {
-        optStruct = Nullable!T(value);
+        optStruct = value;
     }
+
+    mixin Proxy!optStruct;
     Nullable!T optStruct;
-    alias optStruct this;
 }
 
 class PacketStreamException : Exception
