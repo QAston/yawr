@@ -133,3 +133,17 @@ void testPacketData(alias GET_OUTPUT_STREAM, alias GET_INPUT_STREAM, DATA_TYPE)(
 
     assert(outputStream.getData() == inputBinary);
 }
+
+/+
+ + Default implementation of PacketData.stream function
+ + Makes structure to be laid down in stream exactly as in memory
+ + Therefore no reference types or pointers or alignmenr allowed
+ +/
+mixin template streamAsRawBytes()
+{
+    void stream(PACKET_STREAM)(PACKET_STREAM p)
+    {
+        auto bytes = asByteArray(this);
+        p.valArray(bytes);
+    }
+}
