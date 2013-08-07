@@ -24,8 +24,18 @@ struct Flags(T) if (is (T == enum))
         return this;
     }
 
+    ref Flags!T opOpAssign(string op)(T rhs){
+        base = opBinary!op(rhs).base; 
+        return this;
+    }
+
     ref Flags!T opAssign(Flags!T rhs){
         base = rhs.base;
+        return this;
+    }
+
+    ref Flags!T opAssign(T rhs){
+        base = rhs;
         return this;
     }
 
