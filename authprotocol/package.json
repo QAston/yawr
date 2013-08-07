@@ -1,0 +1,23 @@
+{
+	"name": "yawr_authprotocol",
+	"description": "Library defining wow authentication client-server communication protocol - part of Yet Another Wowd Rewrite project",
+	"targetType": "library",
+	"sourcePaths": ["authprotocol"],
+    "sourceFiles": ["../wowdefs/wowdefs/wow_versions.d"],
+	"importPaths": [".", "../wowdefs/"],
+	"dflags": ["-unittest"],
+	"dependencies": {
+		"yawr_util": {"version": "~master", "path": "../util"},
+	},
+    "configurations": [
+        {
+            "name": "library",
+		},
+        {
+            "name": "tests",
+			"targetType": "executable",
+			"dflags": ["-unittest"],
+			"sourceFiles": ["../common/tests_main.d"],
+		},
+	]
+}

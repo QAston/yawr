@@ -4,13 +4,13 @@
 	"sourcePaths": ["authserver"],
 	"dflags": ["-unittest"],
 	"targetType": "executable",
-	"sourceFiles": ["../wowdefs/wowdefs/wow_versions.d"],
 	"dependencies": {
-		"yawr_util": {"version": "~master", "path": "../util"},
+		"yawr_authprotocol": {"version": "~master", "path": "../authprotocol"},
 	},
     "configurations": [
         {
             "name": "app",
+			"targetType": "executable",
         },
 	]
 	
