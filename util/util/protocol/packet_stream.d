@@ -9,6 +9,7 @@ import std.traits;
 
 import util.stream;
 import util.bit;
+import util.typecons;
 
 import util.protocol.memory_stream;
 import util.algorithm;
@@ -159,6 +160,7 @@ final class PacketStream(bool input)
      +/
     void valCount(COUNTER_TYPE, alias Format = identity, T: U[], U)(ref T value) if (isIntegral!COUNTER_TYPE && isDynamicArray!T)
     {
+        import util.typecons : emptyArray;
         static if (isInput)
         {
             if (value !is null)
@@ -167,7 +169,12 @@ final class PacketStream(bool input)
             }
             else
             {
-                value = new U[cast(size_t)(Format.read!(COUNTER_TYPE)(this))];
+                auto size = cast(size_t)(Format.read!(COUNTER_TYPE)(this));
+                if (size == 0)
+                    value = emptyArray!U;
+                else
+                    value = new U[size];
+                assert(value !is null);
             }
         }
         else
@@ -531,7 +538,7 @@ struct Opt(T)
         optStruct = value;
     }
     mixin Proxy!optStruct;
-    Nullable!T optStruct;
+    util.typecons.Nullable!T optStruct;
 }
 
 /+
@@ -546,7 +553,7 @@ struct MarkedOpt(T)
     }
 
     mixin Proxy!optStruct;
-    Nullable!T optStruct;
+    util.typecons.Nullable!T optStruct;
 }
 
 class PacketStreamException : Exception

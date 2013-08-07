@@ -21,6 +21,7 @@ struct PacketInfo(Opcode OPCODE, Direction DIR)
 
 /+
  + Checks that PacketData can be written to stream and reread from it and have same value
+ + Watch out for NAN values in PacketData (default float) - tests for those will fail
  +/
 void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Direction DIR)(DATA_TYPE inputData)
 {
@@ -29,6 +30,7 @@ void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Dire
 
 /+
  + Checks that PacketData definition works as expected with given binary input
+ + Watch out for NAN values in PacketData (default float) - tests for those will fail
  + Params:
  +    inputBinary - binary data to test
  +    expectedResult - data, which should be result of reading the inputBinary
