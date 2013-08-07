@@ -15,6 +15,29 @@ mixin template Versions()
     }
 }
 
+/+
+ + Retuns base type of an enum
+ +/
+template EnumBase(T)
+{
+    static if (is(T BASE == enum))
+    {
+        alias BASE EnumBase;
+    }
+    else
+    {
+        static assert (false, "Type T is not an enum!");
+    }
+}
+
+unittest {
+    enum Test {
+        T1 = 1,
+        T2 = 2,
+    }
+    static assert(is(EnumBase!(Test) == int));
+}
+
 private {
     mixin Versions versionsTest;
 
