@@ -84,40 +84,56 @@ final class PacketStream(bool input)
      + Params:
      +     Format - template functions which handle read/write to stream; allow reading/writing in a non-standard way(ex. asBits)
      +/
-    void val(alias Format = identity, T)(ref T value) if (!isNullable!T && isInput)
+    void val(alias Format = identity, T)(ref T value) if (!isMarkedOpt!T && !isOpt!T && isInput)
     {
         value = Format.read!T(this);
     }
     /// ditto
-    void val(alias Format = identity, T)(ref T value) if (!isNullable!T && !isInput)
+    void val(alias Format = identity, T)(ref T value) if (!isMarkedOpt!T && !isOpt!T && !isInput)
     {
         Format.write(this, value);
     }
 
     /// ditto
-    void val(alias Format = identity, T : Nullable!U, U)(ref T value) if (isInput )
+    void val(alias Format = identity, T : MarkedOpt!U, U)(ref T value) if (isInput)
     {
         if (value.isNull())
-            throw new PacketException("Trying to read nullable!val without reading valIs==true before.");
+            throw new PacketStreamException("Trying to read MarkedOpt!val without reading valMark==true before.");
         value = Format.read!U(this);
     }
 
     /// ditto
-    void val(alias Format = identity, T : Nullable!U, U)(ref T value) if (!isInput)
+    void val(alias Format = identity, T : MarkedOpt!U, U)(ref T value) if (!isInput)
     {
         if (value.isNull())
-            throw new PacketException("Trying to write nullable!val while no value set (missing assignment to val somewhere)");
+            throw new PacketStreamException("Trying to write MarkedOpt!val while no value set (missing assignment to val somewhere)");
+        else
+            Format.write(this, value.get());
+    }
+
+    /// ditto
+    void val(alias Format = identity, T : Opt!U, U)(ref T value) if (isInput)
+    {
+        value = U.init;
+        value = Format.read!U(this);
+    }
+
+    /// ditto
+    void val(alias Format = identity, T : Opt!U, U)(ref T value) if (!isInput)
+    {
+        if (value.isNull())
+            throw new PacketStreamException("Trying to write Opt!val while no value set (missing assignment somewhere)");
         else
             Format.write(this, value.get());
     }
 
     /+
-     + input: Reads boolean indicating if Nullable!val is present from stream
-     + output: Writes boolean indicating if Nullable!val is present to stream
+     + input: Reads boolean indicating if MarkedOpt!val is present from stream
+     + output: Writes boolean indicating if MarkedOpt!val is present to stream
      + Params:
      +     Format - template functions which handle read/write to stream; allow reading/writing in a non-standard way(ex. asBits)
      +/
-    bool valIs(alias Format = identity, T: Nullable!U, U)(ref T value)
+    bool valMark(alias Format = identity, T: MarkedOpt!U, U)(ref T value)
     {
         static if (isInput)
         {
@@ -148,7 +164,7 @@ final class PacketStream(bool input)
         {
             if (value !is null)
             {
-                throw new PacketException("Trying to read valCount of array which already has valCount (length) set");
+                throw new PacketStreamException("Trying to read valCount of array which already has valCount (length) set");
             }
             else
             {
@@ -159,10 +175,10 @@ final class PacketStream(bool input)
         {
             if (value is null)
             {
-                throw new PacketException("Trying to write null dynamic array, if intended please write zero length array instead");
+                throw new PacketStreamException("Trying to write null dynamic array, if intended please write zero length array instead");
             }
             if (COUNTER_TYPE.max < value.length)
-                throw new PacketException("Using too small counter type for length of given array, trim the array or change COUNTER_TYPE");
+                throw new PacketStreamException("Using too small counter type for length of given array, trim the array or change COUNTER_TYPE");
             auto cntr =cast(COUNTER_TYPE)value.length;
             Format.write(this, cntr);
         }
@@ -340,7 +356,7 @@ final class PacketStream(bool input)
             if (auto randStr = cast(RandomAccessBitStream)data)
             {
                 if (randStr.tell != randStr.size)
-                    throw new PacketException("Data block was not fully read");
+                    throw new PacketStreamException("Data block was not fully read");
             }
         }
         else
@@ -451,7 +467,7 @@ final class PacketStream(bool input)
             if (auto randStr = cast(RandomAccessBitStream)data)
             {
                 if (randStr.tell != randStr.size)
-                    throw new PacketException("Data block was not fully read");
+                    throw new PacketStreamException("Data block was not fully read");
             }
         }
         else
@@ -504,7 +520,36 @@ unittest {
     Block!true((PacketStream!true p){}).stream(null);
 }
 
-class PacketException : Exception
+
+/+
+ + Struct which wraps data that is optional part of the packet
+ + Used for easier detection of errors by distinguishing optionally set data from default-initialized data
+ +/
+struct Opt(T)
+{
+    this(T value)
+    {
+        optStruct = Nullable!T(value);
+    }
+    Nullable!T optStruct;
+    alias optStruct this;
+}
+
+/+
+ + Struct which wraps data that is optional part of the packet
+ + Before using val() on this you need to use valMark() to read/write a bit mark telling if structure is present in packet
+ +/
+struct MarkedOpt(T)
+{
+    this(T value)
+    {
+        optStruct = Nullable!T(value);
+    }
+    Nullable!T optStruct;
+    alias optStruct this;
+}
+
+class PacketStreamException : Exception
 {
     this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
     {
@@ -512,14 +557,24 @@ class PacketException : Exception
     }
 }
 
-template isNullable(T: Nullable!U, U)
+template isMarkedOpt(T: MarkedOpt!U, U)
 {
-    enum isNullable = true;
+    enum isMarkedOpt = true;
 }
 
-template isNullable(T)
+template isMarkedOpt(T)
 {
-    enum isNullable = false;
+    enum isMarkedOpt = false;
+}
+
+template isOpt(T: Opt!U, U)
+{
+    enum isOpt = true;
+}
+
+template isOpt(T)
+{
+    enum isOpt = false;
 }
 
 /+
@@ -691,14 +746,14 @@ unittest {
     assertThrown!(Throwable)(valTest!(uint, as!(ubyte))(99999));
 
 
-    void valTestNullable(T, alias Format = identity)(T value)
+    void valTestMarkedOpt(T, alias Format = identity)(T value)
     {
         auto output = new PacketStream!false(buffer, null);
-        if (output.valIs!(Format)(value))
+        if (output.valMark!(Format)(value))
             output.val!(Format)(value);
         auto input = new PacketStream!true(buffer, null);
         T readValue;
-        if (input.valIs!(Format)(readValue))
+        if (input.valMark!(Format)(readValue))
             input.val!(Format)(readValue);
         if (value.isNull())
             assert(readValue.isNull());
@@ -706,31 +761,39 @@ unittest {
             assert(value == readValue);
     }
 
-    void valTestNullableError1(T, alias Format = identity)(T value)
+    void valTestMarkedOptError1(T, alias Format = identity)(T value)
     {
         auto output = new PacketStream!false(buffer, null);
-        if (output.valIs!(Format)(value))
+        if (output.valMark!(Format)(value))
             output.val!(Format)(value);
         auto input = new PacketStream!true(buffer, null);
         T readValue;
         input.val!(Format)(readValue);
     }
 
-    void valTestNullableError2(T, alias Format = identity)(T value)
+    void valTestMarkedOptError2(T, alias Format = identity)(T value)
     {
         auto output = new PacketStream!false(buffer, null);
         output.val!(Format)(value);
     }
 
     {
-        mixin (test!("packetparser - nullable"));
-        Nullable!uint a = 78;
-        valTestNullable(a);
-        Nullable!uint b;
-        valTestNullable(b);
+        mixin (test!("packetstream - MarkedOpt"));
+        MarkedOpt!uint a = 78;
+        valTestMarkedOpt(a);
+        MarkedOpt!uint b;
+        valTestMarkedOpt(b);
 
-        assertThrown!(PacketException)(valTestNullableError1(a));
-        assertThrown!(PacketException)(valTestNullableError2(b));
+        assertThrown!(PacketStreamException)(valTestMarkedOptError1(a));
+        assertThrown!(PacketStreamException)(valTestMarkedOptError2(b));
+    }
+
+    {
+        mixin (test!("packetstream - Opt"));
+        Opt!uint a = 78;
+        valTest(a);
+        Opt!uint b;
+        assertThrown!(PacketStreamException)(valTest(b));
     }
     
 
@@ -753,7 +816,7 @@ unittest {
     }
     
     {
-        mixin (test!("packetparser - nullable, array"));
+        mixin (test!("packetstream - nullable, array"));
         ubyte[] a = new ubyte[60];
         foreach(i, el; a)
         {
@@ -770,8 +833,8 @@ unittest {
         ulong[] c;
         ubyte[] d = new ubyte[300];
 
-        assertThrown!(PacketException)(valTestDynArray(c));
-        assertThrown!(PacketException)(valTestDynArray!ubyte(d));
+        assertThrown!(PacketStreamException)(valTestDynArray(c));
+        assertThrown!(PacketStreamException)(valTestDynArray!ubyte(d));
     }
 
     void valArraySeqTest(T, alias Format = identity)(T value, int[]indexes...)
@@ -788,7 +851,7 @@ unittest {
     }
 
     {
-        mixin (test!"packetparser - valArraySeq");
+        mixin (test!"packetstream - valArraySeq");
         ubyte[5] a = [0,4,6,7,3];
         valArraySeqTest(a, 0,1,2,3,4);
         valArraySeqTest(a, 3,4,0,1,2);
@@ -811,14 +874,14 @@ unittest {
 
 
     {
-        mixin (test!"packetparser - valPackByteSeq tests");
+        mixin (test!"packetstream - valPackByteSeq tests");
         ulong a= 0x11223344;
         valPackByteSeqTest(a, [6, 1, 5, 2, 7, 0, 3, 4], [5, 3, 1, 4, 6, 0, 7, 2]);
         valPackByteSeqTest(a, [5, 3, 1, 4, 6, 0, 7, 2], [6, 1, 5, 2, 7, 0, 3, 4]);
     }
 
     {
-        mixin (test!("packetparser - asCString"));
+        mixin (test!("packetstream - asCString"));
 
         string a = "teststring";
         valTest!(string, asCString)(a);
@@ -835,7 +898,7 @@ unittest {
             }
         }
 
-        mixin (test!("packetparser - substructure"));
+        mixin (test!("packetstream - substructure"));
 
         auto s = TestS(10, true);
         valTest(s);
@@ -848,7 +911,7 @@ unittest {
             b = 1,
             c = 2,
         }
-        mixin (test!("packetparser - asBits"));
+        mixin (test!("packetstream - asBits"));
 
         valTest!(uint, asBits!1)(1);
         valTest!(uint, asBits!1)(0);
@@ -899,7 +962,7 @@ unittest {
     }
 
     {
-        mixin (test!("packetparser - blockSize"));
+        mixin (test!("packetstream - blockSize"));
 
         valTestBlockSize!(uint, true)();
         valTestBlockSize!(uint, false)();
@@ -945,7 +1008,7 @@ unittest {
     }
 
     {
-        mixin (test!("packetparser - deflateBlock"));
+        mixin (test!("packetstream - deflateBlock"));
 
         valTestDeflate!(false, false)();
         valTestDeflate!(false, true)();
@@ -971,7 +1034,7 @@ unittest {
     }
 
     {
-        mixin (test!("packetparser - valBit"));
+        mixin (test!("packetstream - valBit"));
 
         
         struct TestS2 {

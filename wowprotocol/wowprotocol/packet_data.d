@@ -27,7 +27,6 @@ void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Dire
     util.protocol.packet_data.testPacketData!((ubyte[] buffer)=>new PacketStream!false(buffer, &((new Session()).compress)),(ubyte[] buffer)=>new PacketStream!true(buffer, &((new Session()).decompress)))(inputData);
 }
 
-
 /+
  + Checks that PacketData definition works as expected with given binary input
  + Params:
