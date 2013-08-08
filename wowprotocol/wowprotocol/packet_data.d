@@ -19,6 +19,12 @@ struct PacketInfo(Opcode OPCODE, Direction DIR)
     enum dir = DIR;
 }
 
+/// Shorthand for accessing PacketData!(PacketInfo! type
+template Packet(Opcode OPCODE, Direction DIRECTION)
+{
+    alias PacketData!(PacketInfo!(OPCODE, DIRECTION)) Packet;
+}
+
 /+
  + Checks that PacketData can be written to stream and reread from it and have same value
  + Watch out for NAN values in PacketData (default float) - tests for those will fail

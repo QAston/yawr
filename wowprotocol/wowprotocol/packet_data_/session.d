@@ -27,7 +27,7 @@ struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE) {
 }
 
 unittest {
-    testPacketData(PacketData!(PacketInfo!(Opcode.SMSG_AUTH_CHALLENGE, Direction.c2s))());
+    testPacketData(Packet!(Opcode.SMSG_AUTH_CHALLENGE, Direction.c2s)());
 }
 
 struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION) {
@@ -81,7 +81,7 @@ struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION) {
 
 unittest {
     import std.conv;
-    auto t1 = PacketData!(PacketInfo!(Opcode.CMSG_AUTH_SESSION, Direction.c2s))();
+    auto t1 = Packet!(Opcode.CMSG_AUTH_SESSION, Direction.c2s)();
     t1.accountName = "asd".to!(char[]);
     t1.clientAddonsList.addons = [Addon("addon1", true, 0, 0), Addon("addon2", false, 0, 0)];
     testPacketData(t1);
@@ -133,6 +133,6 @@ struct PacketData(PACKET) if(PACKET.op == (Opcode.SMSG_MOVE_SET_RUN_SPEED) && PA
 }
 
 unittest {
-    testPacketData(x"5E 05 E2 10 00 00 00 00 00 E0 40 D9 07 57", PacketData!(PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c))(16, 7, 432345564300370904));
-    testPacketData(PacketData!(PacketInfo!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c))(16, 7, 432345564300370904));
+    testPacketData(x"5E 05 E2 10 00 00 00 00 00 E0 40 D9 07 57", Packet!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c)(16, 7, 432345564300370904));
+    testPacketData(Packet!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c)(16, 7, 432345564300370904));
 }

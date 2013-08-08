@@ -21,11 +21,18 @@ enum ProtocolVersion
     POST_BC
 }
 
+/// Compile time struct identifying a packet data
 struct PacketInfo(Opcode OPCODE, Direction DIRECTION, ProtocolVersion VER)
 {
     enum op = OPCODE;
     enum dir = DIRECTION;
     enum ver = VER;
+}
+
+/// Shorthand for accessing PacketData!(PacketInfo! type
+template Packet(Opcode OPCODE, Direction DIRECTION, ProtocolVersion VER)
+{
+    alias PacketData!(PacketInfo!(OPCODE, DIRECTION, VER)) Packet;
 }
 
 /+
@@ -86,7 +93,7 @@ struct PacketData(PACKET)
 }
 
 unittest {
-    auto t1 = PacketData!(PacketInfo!(Opcode.AUTH_LOGON_CHALLENGE, Direction.c2s, ProtocolVersion.POST_BC))();
+    auto t1 = Packet!(Opcode.AUTH_LOGON_CHALLENGE, Direction.c2s, ProtocolVersion.POST_BC)();
     t1.unk = 6;
     auto pi = getPatchInfo(WowVersion.V4_3_4_15595);
     t1.build = BuildInfo(pi.major, pi.minor, pi.bugfix, WowVersion.V4_3_4_15595);
@@ -174,10 +181,10 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.AUTH_LOGON_CHALLENGE && PACKET
 }
 
 unittest {
-    auto t1 = PacketData!(PacketInfo!(Opcode.AUTH_LOGON_CHALLENGE, Direction.s2c, ProtocolVersion.POST_BC))();
+    auto t1 = Packet!(Opcode.AUTH_LOGON_CHALLENGE, Direction.s2c, ProtocolVersion.POST_BC)();
     t1.result = AuthResult.WOW_FAIL_BANNED;
     testPacketData(t1);
-    auto t2 = PacketData!(PacketInfo!(Opcode.AUTH_LOGON_CHALLENGE, Direction.s2c, ProtocolVersion.POST_BC))();
+    auto t2 = Packet!(Opcode.AUTH_LOGON_CHALLENGE, Direction.s2c, ProtocolVersion.POST_BC)();
     t2.result = AuthResult.WOW_SUCCESS;
     auto secInf = typeof(t2).SecurityInfo();
     secInf.flags = SecurityFlags.TOKEN_INPUT;
@@ -201,7 +208,7 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.AUTH_RECONNECT_CHALLENGE && PA
 }
 
 unittest {
-    testPacketData(PacketData!(PacketInfo!(Opcode.AUTH_RECONNECT_CHALLENGE, Direction.s2c, ProtocolVersion.POST_BC))(AuthResult.WOW_SUCCESS));
+    testPacketData(Packet!(Opcode.AUTH_RECONNECT_CHALLENGE, Direction.s2c, ProtocolVersion.POST_BC)(AuthResult.WOW_SUCCESS));
 }
 
 align(1)
@@ -217,7 +224,7 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.AUTH_LOGON_PROOF && PACKET.dir
 }
 
 unittest {
-    testPacketData(PacketData!(PacketInfo!(Opcode.AUTH_LOGON_PROOF, Direction.c2s, ProtocolVersion.POST_BC))());
+    testPacketData(Packet!(Opcode.AUTH_LOGON_PROOF, Direction.c2s, ProtocolVersion.POST_BC)());
 }
 
 
@@ -269,14 +276,14 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.AUTH_LOGON_PROOF && PACKET.dir
 
 unittest {
     {
-        auto t1 = PacketData!(PacketInfo!(Opcode.AUTH_LOGON_PROOF, Direction.s2c, ProtocolVersion.POST_BC))();
+        auto t1 = Packet!(Opcode.AUTH_LOGON_PROOF, Direction.s2c, ProtocolVersion.POST_BC)();
         auto proof = typeof(t1).Proof();
         t1.proof = proof;
         testPacketData(t1);
     }
 
     {
-        auto t2 = PacketData!(PacketInfo!(Opcode.AUTH_LOGON_PROOF, Direction.s2c, ProtocolVersion.PRE_BC))();
+        auto t2 = Packet!(Opcode.AUTH_LOGON_PROOF, Direction.s2c, ProtocolVersion.PRE_BC)();
         auto proof = typeof(t2).Proof();
         t2.proof = proof;
         testPacketData(t2);
@@ -295,7 +302,7 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.AUTH_RECONNECT_PROOF && PACKET
 }
 
 unittest {
-    testPacketData(PacketData!(PacketInfo!(Opcode.AUTH_RECONNECT_PROOF, Direction.c2s, ProtocolVersion.POST_BC))());
+    testPacketData(Packet!(Opcode.AUTH_RECONNECT_PROOF, Direction.c2s, ProtocolVersion.POST_BC)());
 }
 
 align(1)
@@ -308,7 +315,7 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.AUTH_RECONNECT_PROOF && PACKET
 }
 
 unittest {
-    testPacketData(PacketData!(PacketInfo!(Opcode.AUTH_RECONNECT_PROOF, Direction.s2c, ProtocolVersion.POST_BC))());
+    testPacketData(Packet!(Opcode.AUTH_RECONNECT_PROOF, Direction.s2c, ProtocolVersion.POST_BC)());
 }
 
 struct PacketData(PACKET) if (PACKET.op == Opcode.REALM_LIST && PACKET.dir == Direction.s2c)
@@ -335,7 +342,7 @@ unittest {
     realmInfo.address = cast(char[])"127.0.0.1";
     auto pi = getPatchInfo(WowVersion.V4_3_4_15595);
     realmInfo.build = BuildInfo(pi.major, pi.minor, pi.bugfix, WowVersion.V4_3_4_15595);
-    auto t1 = PacketData!(PacketInfo!(Opcode.REALM_LIST, Direction.s2c, ProtocolVersion.POST_BC))();
+    auto t1 = Packet!(Opcode.REALM_LIST, Direction.s2c, ProtocolVersion.POST_BC)();
     t1.realms = [realmInfo];
     testPacketData(t1);
 }
@@ -389,5 +396,5 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.REALM_LIST && PACKET.dir == Di
 }
 
 unittest {
-    testPacketData(PacketData!(PacketInfo!(Opcode.REALM_LIST, Direction.c2s, ProtocolVersion.POST_BC))());
+    testPacketData(Packet!(Opcode.REALM_LIST, Direction.c2s, ProtocolVersion.POST_BC)());
 }
