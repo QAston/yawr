@@ -79,9 +79,12 @@ class BitMemoryStream : RandomAccessBitStream {
     @property bool dataAvailableForRead() { return data.dataAvailableForRead; }
 }
 
-/+
- +
- +/
+/// Wraps an InputStream class and provides bitwise access
+class InputBitStreamWrapper(STREAM : InputStream) : InputBitStream
+{
+    mixin BitStreamBase!(STREAM);
+    mixin BitStreamInput!(STREAM);
+}
 
 mixin template BitStreamBase(STREAM)
 {
