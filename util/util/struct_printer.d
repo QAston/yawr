@@ -100,3 +100,56 @@ unittest {
     fieldsToString(B());
     fieldsToString(A());
 }
+
+/+
++ Returns string with a hex dump of a stream
++/
+public string toHex(ubyte[] data)
+{
+    import std.ascii, std.format;
+    import std.array;
+
+    auto dump = appender!(dchar[]);
+
+    dump.put("|-------------------------------------------------|---------------------------------|\n");
+    dump.put("| 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | 0 1 2 3 4 5 6 7 8 9 A B C D E F |\n");
+    dump.put("|-------------------------------------------------|---------------------------------|\n");
+
+    for (auto i = 0; i < data.length; i += 16)
+    {
+        auto text = appender!(dchar[]);
+        auto hex = appender!(dchar[]);
+        text.put("| ");
+        hex.put("| ");
+
+        for (auto j = 0; j < 16; j++)
+        {
+            if (j + i < data.length)
+            {
+                auto val = data[j + i];
+                formattedWrite(hex , "%02X ", val);
+
+                if (val.isPrintable)
+                    text.put(val);
+                else
+                    text.put(".");
+
+                text.put(" ");
+            }
+            else
+            {
+                hex.put("   ");
+                text.put("  ");
+            }
+        }
+
+
+        hex.put(text.data ~ "|");
+        hex.put("\n");
+        dump.put(hex.data);
+    }
+
+
+    dump.put("|-------------------------------------------------|---------------------------------|");
+    return std.conv.to!string(dump.data());
+}

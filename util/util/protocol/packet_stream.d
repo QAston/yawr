@@ -11,7 +11,7 @@ import util.stream;
 import util.bit;
 import util.typecons;
 
-import util.protocol.memory_stream;
+import util.bit_memory_stream;
 import util.algorithm;
 
 /+
@@ -74,8 +74,9 @@ final class PacketStream(bool input)
      +/
     string toHex()
     {
-        if (auto randStr = cast(RandomAccessBitStream)data)
-            return randStr.toHex();
+        import util.struct_printer;
+        if (auto randStr = cast(BitMemoryStream)data)
+            return randStr.getData().toHex();
         assert(false, "Can't print data from non-random access stream");
     }
 

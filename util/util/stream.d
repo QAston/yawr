@@ -7,32 +7,6 @@ import std.bitmanip;
 import std.system;
 import std.traits;
 
-import vibe.core.stream;
-
-/+
- + RandomAccess stream interface extended with bit-wise reads/writes
- + Assumes that flushes for bit operations are not neccesary
- +/
-interface RandomAccessBitStream : RandomAccessStream, InputBitStream {
-
-    /+
-     + Writes single bit to the stream.
-     + Byte-wise functions will assume full byte was written here for less than 8 calls made in a row
-     +/
-    void writeBit(bool bit);
-}
-
-/+
- + Input stream interface extended with bit-wise reads
- +/
-interface InputBitStream : InputStream {
-    /+
-     + Reads single bit from the stream
-     + Byte-wise functions will assume full byte was read here for less than 8 calls made in a row
-     +/
-    bool readBit();
-}
-
 /+
  + Returns true for input streams usable by util
  +/
