@@ -594,14 +594,14 @@ template asBits(byte BITS)
     import std.conv;
     import std.bitmanip;
 
-    void write(VAL)(PacketStream!false p, auto ref VAL val) if (isIntegral!VAL)
+    void write(VAL, PACKET_STREAM)(PACKET_STREAM p, auto ref VAL val) if (PACKET_STREAM.isOutput && isIntegral!VAL)
     {
         // not equal because of signed problems
         static assert(VAL.sizeof * 8 > BITS);
         for (byte i = BITS - 1; i >= 0; --i)
             p.data.writeBit((val & (1 << i)) != 0);
     }
-    VAL read(VAL)(PacketStream!true p)  if (isIntegral!VAL)
+    VAL read(VAL, PACKET_STREAM)(PACKET_STREAM p) if (PACKET_STREAM.isInput && isIntegral!VAL)
     {
         // not equal because of signed problems
         static assert(VAL.sizeof * 8 > BITS);
@@ -630,11 +630,11 @@ template as(T)
 {
     import std.conv;
     
-    void write(VAL)(PacketStream!false p, auto ref VAL val)
+    void write(VAL, PACKET_STREAM)(PACKET_STREAM p, auto ref VAL val) if (PACKET_STREAM.isOutput)
     {
         identity.write(p, val.to!T);
     }
-    VAL read(VAL)(PacketStream!true p)
+    VAL read(VAL, PACKET_STREAM)(PACKET_STREAM p) if (PACKET_STREAM.isInput)
     {
         return identity.read!T(p).to!VAL;
     }
@@ -649,7 +649,7 @@ static struct identity
 {
     import util.stream;
     
-    static void write(VAL)(PacketStream!false p, auto ref VAL val)
+    static void write(VAL, PACKET_STREAM)(PACKET_STREAM p, auto ref VAL val) if (PACKET_STREAM.isOutput)
     {
         static if (is (typeof(p.data.swrite!VAL(val))== void))
             p.data.swrite!VAL(val);
@@ -668,7 +668,7 @@ static struct identity
         }
     }
 
-    static VAL read(VAL)(PacketStream!true p)
+    static VAL read(VAL, PACKET_STREAM)(PACKET_STREAM p) if (PACKET_STREAM.isInput)
     {
         static if (is (typeof(p.data.sread!VAL())== VAL))
             return p.data.sread!VAL();
@@ -700,8 +700,7 @@ static struct asCString
 {
     import std.conv;
     
-
-    static void write(VAL)(PacketStream!false p, ref VAL val) if (isSomeString!VAL)
+    static void write(VAL, PACKET_STREAM)(PACKET_STREAM p, auto ref VAL val) if (PACKET_STREAM.isOutput && isSomeString!VAL)
     {
         foreach(ref c; val)
         {
@@ -709,7 +708,7 @@ static struct asCString
         }
         p.data.swrite!char('\0');
     }
-    static VAL read(VAL)(PacketStream!true p) if (isSomeString!VAL)
+    static VAL read(VAL, PACKET_STREAM)(PACKET_STREAM p) if (PACKET_STREAM.isInput && isSomeString!VAL)
     {
         auto cstr = appender!(char[]);
        

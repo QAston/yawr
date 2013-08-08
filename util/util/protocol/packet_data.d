@@ -3,12 +3,10 @@
  +/
 module util.protocol.packet_data;
 
-import util.protocol.packet_stream;
-
 /++
  + Reads a packet data of a specified structType from a given inputStream using given func
  +/
-void[] read(PacketStream!true inputStream, TypeInfo structType, void function(PacketStream!true) func)
+void[] read(PACKET_STREAM)(PACKET_STREAM inputStream, TypeInfo structType, void function(PACKET_STREAM) func) if (PACKET_STREAM.isInput)
 in {
     assert(inputStream !is null);
     assert(structType !is null);
@@ -24,7 +22,7 @@ body {
     else
         packetData = (structType.init()).dup;
 
-    void delegate(PacketStream!true) caller;
+    void delegate(PACKET_STREAM) caller;
     caller.ptr = packetData.ptr;
     caller.funcptr = func;
     caller(inputStream);
@@ -34,7 +32,7 @@ body {
 /++
  + Writes packetData to a given outputStream using given func
  +/
-void write(PacketStream!false outputStream, TypeInfo structType, void function(PacketStream!false) func, void[] packetData)
+void write(PACKET_STREAM)(PACKET_STREAM outputStream, TypeInfo structType, void function(PACKET_STREAM) func, void[] packetData) if (PACKET_STREAM.isOutput)
 in {
     assert(outputStream !is null);
     assert(structType !is null);
@@ -43,7 +41,7 @@ in {
 }
 body {
     assert(packetData.length == structType.tsize());
-    void delegate(PacketStream!false) caller;
+    void delegate(PACKET_STREAM) caller;
     caller.ptr = packetData.ptr;
     caller.funcptr = func;
     caller(outputStream);
