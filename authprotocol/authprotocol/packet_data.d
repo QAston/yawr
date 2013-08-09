@@ -66,11 +66,11 @@ struct PacketData(PACKET)
     if (PACKET.dir == Direction.c2s && (PACKET.op == Opcode.AUTH_LOGON_CHALLENGE || PACKET.op == Opcode.AUTH_RECONNECT_CHALLENGE))
 {
     ubyte unk; // for AUTH_LOGON_CHALLENGE - 6 in PseuWow
-    ubyte[4] gamename;
+    char[4] gamename; // 0-terminated
     BuildInfo build;
-    ubyte[4] platform;
-    ubyte[4] os;
-    ubyte[4] country;
+    char[4] platform; // reversed and afterwards 0-terminated
+    char[4] os; // reversed and afterwards 0-terminated
+    char[4] country; // reversed
     uint timezone_bias;
     uint ip;
     char[] accountName;

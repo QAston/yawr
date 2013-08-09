@@ -3,6 +3,7 @@ module util.struct_printer;
 import std.typetuple;
 import util.traits;
 import std.traits;
+import std.conv;
 
 /+
  + Generates a string representation of a given struct
@@ -12,20 +13,18 @@ string fieldsToString(T)(in T t, in string alignment="")
 {
     import std.array;
     import std.range;
+    import std.string;
     auto str = appender!string();
-    static if (isSomeString!T || isSomeChar!T)
+    static if (isArray!T && isSomeChar!(typeof(t[0])))
     {
         str.put(alignment);
-        str.put(t);
+        str.put(removechars(t.to!(string), "\0"));
         str.put("\n");
     }
-    else static if (is(T : U[], U) && isSomeChar!U)
+    else static if (isSomeChar!T)
     {
         str.put(alignment);
-        foreach(i, element; t)
-        {
-            put(element);
-        }
+        str.put(t.to!string);
         str.put("\n");
     }
     else static if (is(T BASE == enum))

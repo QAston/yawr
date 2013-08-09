@@ -169,7 +169,7 @@ unittest {
  + Major versions - each expansion introduced a new version of the game
  + Not refered to as expansion however, as client doesn't have to have MoP expansion to use MajorWowVersion 5
  +/
-enum MajorWowVersion {
+enum MajorWowVersion : ubyte {
     Alpha = 0,
     Vanilla = 1,
     TBC = 2,
