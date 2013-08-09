@@ -71,19 +71,17 @@ class BitMemoryStream : RandomAccessBitStream {
         flushBits();
         data.seek(offset);
     }
-
-    ///
-    const(ubyte)[] peek() { return data.peek(); }
-    @property bool empty() { return data.empty(); }
-    @property ulong leastSize() { return data.leastSize(); }
-    @property bool dataAvailableForRead() { return data.dataAvailableForRead; }
 }
 
 /// Wraps an InputStream class and provides bitwise access
 class InputBitStreamWrapper(STREAM : InputStream) : InputBitStream
 {
+    this(STREAM stream)
+    {
+        this.data = stream;
+    }
     mixin BitStreamBase!(STREAM);
-    mixin BitStreamInput!(STREAM);
+    mixin BitStreamInput;
 }
 
 mixin template BitStreamBase(STREAM)
@@ -125,6 +123,12 @@ mixin template BitStreamInput() {
             flushBits();
         return val;
     }
+
+    ///
+    const(ubyte)[] peek() { return data.peek(); }
+    @property bool empty() { return data.empty(); }
+    @property ulong leastSize() { return data.leastSize(); }
+    @property bool dataAvailableForRead() { return data.dataAvailableForRead; }
 }
 
 mixin template BitStreamOutput()
