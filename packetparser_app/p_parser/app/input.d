@@ -12,6 +12,7 @@ import vibe.core.stream;
 
 import util.stream;
 import util.time;
+import util.protocol.direction;
 
 import p_parser.dump;
 
@@ -244,7 +245,7 @@ final class PktPacketInput : PacketInput
 		int opcode;
 		int length;
 		SysTime time;
-		p_parser.dump.Direction direction;
+		util.protocol.direction.Direction direction;
 		ubyte[] data;
 		
 		uint cIndex = 0;
@@ -256,7 +257,7 @@ final class PktPacketInput : PacketInput
 				{
 					opcode = stream.sread!ushort;
 					length = stream.sread!int;
-					direction = cast(p_parser.dump.Direction)stream.sread!byte;
+					direction = cast(util.protocol.direction.Direction)stream.sread!byte;
 					time = unixTimeToSysTimeUTC(cast(core.stdc.time.time_t)stream.sread!ulong);
                     if (additionalData != null)
                     {
@@ -273,12 +274,12 @@ final class PktPacketInput : PacketInput
 				case PktVersion.V2_1:
 				case PktVersion.V2_2:
 				{
-					direction = (stream.sread!ubyte == 0xff) ? p_parser.dump.Direction.s2c : p_parser.dump.Direction.c2s;
+					direction = (stream.sread!ubyte == 0xff) ? util.protocol.direction.Direction.s2c : util.protocol.direction.Direction.c2s;
 					time = unixTimeToSysTimeUTC(stream.sread!int);
 					stream.sread!int; // tick count
 					length = stream.sread!int;
 					
-					if (direction == p_parser.dump.Direction.s2c)
+					if (direction == util.protocol.direction.Direction.s2c)
 					{
 						opcode = stream.sread!ushort;
                         data = getBuffer(length - 2);
@@ -296,7 +297,7 @@ final class PktPacketInput : PacketInput
 				case PktVersion.V3_0:
 				case PktVersion.V3_1:
 				{
-					direction = (stream.sread!uint == 0x47534d53) ? p_parser.dump.Direction.s2c : p_parser.dump.Direction.c2s;
+					direction = (stream.sread!uint == 0x47534d53) ? util.protocol.direction.Direction.s2c : util.protocol.direction.Direction.c2s;
 					
 					if (pktVersion == PktVersion.V3_0)
 					{
@@ -356,7 +357,7 @@ final class BinaryPacketInput : PacketInput
 		auto opcode = stream.sread!uint;
 		auto length = stream.sread!uint;
 		auto time = unixTimeToSysTimeUTC(stream.sread!int);
-		auto direction = cast(p_parser.dump.Direction)stream.sread!char();
+		auto direction = cast(util.protocol.direction.Direction)stream.sread!char();
         auto data = getBuffer(cast(size_t)(length));
         stream.read(data);
 		

@@ -1,35 +1,31 @@
-module p_parser.printer;
+module util.struct_printer;
 
-import std.traits;
-
-import protocol.opcode;
-import protocol.handler;
 import std.typetuple;
 import util.traits;
+import std.traits;
+import std.conv;
 
+/+
+ + Generates a string representation of a given struct
+ + Prints member names and uses more whitespace than builtin toString
+ +/
 string fieldsToString(T)(in T t, in string alignment="")
 {
     import std.array;
     import std.range;
+    import std.string;
     auto str = appender!string();
-    static if (isSomeString!T || isSomeChar!T)
+    static if (isArray!T && isSomeChar!(typeof(t[0])))
     {
         str.put(alignment);
-        str.put(t);
+        str.put(removechars(t.to!(string), "\0"));
         str.put("\n");
     }
-    else static if (is(T : U[], U) && isSomeChar!U)
+    else static if (isSomeChar!T)
     {
         str.put(alignment);
-        foreach(i, element; t)
-        {
-            put(element);
-        }
+        str.put(t.to!string);
         str.put("\n");
-    }
-    else static if (is(T == Opcode))
-    {
-
     }
     else static if (is(T BASE == enum))
     {
@@ -104,31 +100,55 @@ unittest {
     fieldsToString(A());
 }
 
-string packetPrinter(T)(void[] data)
+/+
++ Returns string with a hex dump of a stream
++/
+public string toHex(ubyte[] data)
 {
-    import std.stdio;
-    assert(T.sizeof == data.length);
-    return fieldsToString!(T)(*(cast(T*)data));
-}
+    import std.ascii, std.format;
+    import std.array;
 
-private static string function(void[])[Opcode] packetPrinters;
+    auto dump = appender!(dchar[]);
 
-string print(Opcode opcode, void[] data)
-in {
-    assert (hasOpcodeHandler(opcode));
-}
-body {
-    return packetPrinters[opcode](data);
-}
+    dump.put("|-------------------------------------------------|---------------------------------|\n");
+    dump.put("| 00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F | 0 1 2 3 4 5 6 7 8 9 A B C D E F |\n");
+    dump.put("|-------------------------------------------------|---------------------------------|\n");
 
-static this()
-{
-    foreach(handlerOpcode; staticMap!(getHandlerWithOpcodes, ModuleMembersMatching!(protocol.handler_.session, isHandler)))
+    for (auto i = 0; i < data.length; i += 16)
     {
-        foreach(opc; handlerOpcode.opcodes)
+        auto text = appender!(dchar[]);
+        auto hex = appender!(dchar[]);
+        text.put("| ");
+        hex.put("| ");
+
+        for (auto j = 0; j < 16; j++)
         {
-            assert (opc !in packetPrinters, "Opcode " ~ opc.opcodeToString ~ " has more than one handler registered for it");
-            packetPrinters[opc] = &packetPrinter!(handlerOpcode.handler);
+            if (j + i < data.length)
+            {
+                auto val = data[j + i];
+                formattedWrite(hex , "%02X ", val);
+
+                if (val.isPrintable)
+                    text.put(val);
+                else
+                    text.put(".");
+
+                text.put(" ");
+            }
+            else
+            {
+                hex.put("   ");
+                text.put("  ");
+            }
         }
+
+
+        hex.put(text.data ~ "|");
+        hex.put("\n");
+        dump.put(hex.data);
     }
+
+
+    dump.put("|-------------------------------------------------|---------------------------------|");
+    return std.conv.to!string(dump.data());
 }

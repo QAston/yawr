@@ -4,14 +4,15 @@ import std.range;
 import std.stdio;
 import std.conv;
 
-import protocol.handler;
-import protocol.opcode;
-import protocol.packet;
+import wowprotocol.opcode;
+import util.protocol.packet_stream;
 
 import p_parser.dump;
-import p_parser.printer;
+import p_parser.packet_data;
 
-import protocol.session;
+import wowprotocol.session;
+
+import util.struct_printer;
 
 static Session[uint] sessions;
 
@@ -29,16 +30,17 @@ void parse(InputRange!PacketDump packets) nothrow
     try {
         foreach(packetDump; packets)
         {
-            auto p = new Packet!true(packetDump.data, cast(Opcode)packetDump.opcode, getSession(packetDump.sessionId));
-            writefln("%s %s %s", p.opcode.opcodeToString, packetDump.direction, packetDump.dateTime.to!string);
-            //writefln("%s", p.toHex());
-            if (!protocol.handler.hasOpcodeHandler(p.opcode))
+            auto p = new PacketStream!true(packetDump.data, &(getSession(packetDump.sessionId).decompress));
+            Opcode opcode = cast(Opcode)packetDump.opcode;
+            writefln("%s %s %s", opcodeToString(opcode), packetDump.direction, packetDump.dateTime.to!string);
+            if (!canParse(opcode, packetDump.direction))
             {
                 writeln("No opcode handler for packet");
                 continue;
             }
-            void[] data = read(p, p.opcode);
-            writefln("%s", print(p.opcode, data));
+            writefln("%s", packetDump.data.toHex());
+            void[] data = read(p, opcode, packetDump.direction);
+            writefln("%s", print(opcode, packetDump.direction, data));
             stdin.readln();
         }
     }
@@ -51,4 +53,5 @@ void parse(InputRange!PacketDump packets) nothrow
         }
     }
 }
+
 

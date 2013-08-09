@@ -133,7 +133,7 @@ immutable (Guid) create(ulong guid)
 
 unittest {
     import std.exception;
-    mixin (test!((create)));
+    mixin (test!("create"));
     assert (create(0) is null);
     assert (create(0x4280000000000004).type == GuidType.Item);
     assert (create(0x4001230000000004).type == GuidType.Item);

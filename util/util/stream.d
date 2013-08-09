@@ -1,5 +1,5 @@
 /+
- + This module provides UFCS methods for Input and Output streams
+ + This module provides stream utilities
  +/
 module util.stream;
 
@@ -10,14 +10,14 @@ import std.traits;
 /+
  + Returns true for input streams usable by util
  +/
-template isInStream(T) {
+private template isInStream(T) {
     enum isInStream = is (typeof(T.read([0u])) == void);
 }
 
 /+
  + Returns true for output streams usable by util
  +/
-template isOutStream(T) {
+private template isOutStream(T) {
      enum isOutStream = is (typeof(T.write([0u])) == void);
 }
 

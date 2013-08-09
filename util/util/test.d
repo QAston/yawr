@@ -1,7 +1,7 @@
 module util.test;
 
 /+
- + Prints name of unittests and their result
+ + Prints name of unittests and their result(success or failure)
  +/
 string test(string name)() {
     return `import std.stdio;

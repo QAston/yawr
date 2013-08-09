@@ -1,16 +1,17 @@
-module protocol.handler_.session;
+module wowprotocol.packet_data_.session;
 
-import protocol.opcode;
+import wowprotocol.opcode;
 import wowdefs.wow_version;
-import protocol.packet;
+import util.protocol.packet_stream;
+import util.protocol.direction;
+import wowprotocol.packet_data;
 
-@Handler!(Opcode.SMSG_AUTH_CHALLENGE)
-struct SmsgAuthChallenge {
+struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE) {
     uint[8] key;
     uint serverSeed;
     bool unk;
 
-    void handle(bool INPUT)(Packet!INPUT p)
+    void stream(PACKET_STREAM)(PACKET_STREAM p)
     {
         p.val(key[0]);
         p.val(key[1]);
@@ -23,28 +24,20 @@ struct SmsgAuthChallenge {
         p.val(serverSeed);
         p.val(unk);
     }
-
-    //@Test()
-    void test()
-    {
-        foreach (i, ref k; key)
-        {
-            k = i;
-        }
-        serverSeed = 1234;
-        unk = 1;
-    }
 }
 
-@Handler!(Opcode.CMSG_AUTH_SESSION)
-struct AuthSession {
+unittest {
+    testPacketData(Packet!(Opcode.SMSG_AUTH_CHALLENGE, Direction.c2s)());
+}
+
+struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION) {
     byte[20] sha;
     WowVersion build;
     char[] accountName;
     uint clientSeed;
     ClientAddonsList!(true) clientAddonsList;
 
-    void handle(bool INPUT)(Packet!INPUT p)
+    void stream(PACKET_STREAM)(PACKET_STREAM p)
     {
         p.skip!uint;
         p.skip!uint;
@@ -86,6 +79,14 @@ struct AuthSession {
     }
 }
 
+unittest {
+    import std.conv;
+    auto t1 = Packet!(Opcode.CMSG_AUTH_SESSION, Direction.c2s)();
+    t1.accountName = "asd".to!(char[]);
+    t1.clientAddonsList.addons = [Addon("addon1", true, 0, 0), Addon("addon2", false, 0, 0)];
+    testPacketData(t1);
+}
+
 struct Addon {
     string name;
     bool enabled;
@@ -99,9 +100,9 @@ struct ClientAddonsList(bool valDeflatedSize) {
 
     Time time;
 
-    void handle(bool INPUT)(Packet!INPUT p)
+    void stream(PACKET_STREAM)(PACKET_STREAM p)
     {
-        p.deflateBlock!(true, valDeflatedSize)((){
+        p.deflateBlock!(false, valDeflatedSize)((){
             p.valCount!(uint)(addons);
 
             foreach(ref addon; addons)
@@ -116,14 +117,12 @@ struct ClientAddonsList(bool valDeflatedSize) {
     }
 }
 
-@Handler!(Opcode.SMSG_MOVE_SET_RUN_SPEED)
-struct MoveSetRunSpeed
+struct PacketData(PACKET) if(PACKET.op == (Opcode.SMSG_MOVE_SET_RUN_SPEED) && PACKET.dir==Direction.s2c)
 {
     uint unk;
     float speed;
     ulong guid;
-    
-    void handle(bool INPUT)(Packet!INPUT p)
+    void stream(PACKET_STREAM)(PACKET_STREAM p)
     {
         p.valPackMarkByteSeq(guid, 6, 1, 5, 2, 7, 0, 3, 4);
         p.valPackByteSeq(guid, 5,3,1,4);
@@ -131,4 +130,9 @@ struct MoveSetRunSpeed
         p.val(speed);
         p.valPackByteSeq(guid, 6,0,7,2);
     }
+}
+
+unittest {
+    testPacketData(x"5E 05 E2 10 00 00 00 00 00 E0 40 D9 07 57", Packet!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c)(16, 7, 432345564300370904));
+    testPacketData(Packet!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c)(16, 7, 432345564300370904));
 }

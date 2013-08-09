@@ -1,19 +1,33 @@
 module util.bit;
-/+
- + Returns BitArray providing bitwise access to given type
- +/
+
 import std.bitmanip;
 import std.traits;
 
+/+
+ + Utility for accessing data as bit array
+ + Structure members must be aligned to one byte boundary (align(1))
+ +/
 BitArray asBitArray(T)(ref T t)
 {
     static assert(!hasIndirections!T, "Cannot get bitwise access to types with indirections!");
+    static if (is(T==struct))
+    {
+        import util.traits;
+        enum size = MembersSize!T;
+        static assert(size == RepresentationMembersSize!T && size == T.sizeof, "Alignment error, structure is not aligned for casting to ubyte[]");
+    }
+    else
+        enum size = T.sizeof;
     auto bits = BitArray();
-    void[] data = (&t)[0..T.sizeof];
-    bits.init(cast(void[])data, T.sizeof*8);
+    void[] data = (&t)[0..size];
+    bits.init(cast(void[])data, size*8);
     return bits;
 }
 
+/+
+ + Structure used to represent Bit as a distinct type from bool.
+ + Can be implicitly cast to bool, explicitly to any integral type
+ +/
 struct Bit {
     this(T)(T v) if (isIntegral!T)
     {
@@ -49,11 +63,22 @@ unittest {
 
 /+
  + Utility for accessing data as byte array
+ + Structure members must be aligned to one byte boundary (align(1))
  +/
 ubyte[] asByteArray(T)(ref T t)
 {
     static assert(!hasIndirections!T, "Cannot get bitwise access to types with indirections!");
-    ubyte[] data = (cast(ubyte*)(&t))[0..T.sizeof];
+
+    static if (is(T==struct))
+    {
+        import util.traits;
+        enum size = MembersSize!T;
+        static assert(size == RepresentationMembersSize!T && size == T.sizeof, "Alignment error, structure is not aligned for casting to ubyte[]");
+    }
+    else
+        enum size = T.sizeof;
+
+    ubyte[] data = (cast(ubyte*)(&t))[0..size];
     return data;
 }
 
@@ -63,4 +88,15 @@ unittest {
     assert(asByteArray(a)[1] == 0x33);
     assert(asByteArray(a)[2] == 0x22);
     assert(asByteArray(a)[3] == 0x11);
+
+    align(1)
+    struct TestType {
+        align(1):
+        ubyte a;
+        ushort b;
+    }
+    auto t1 = TestType(0x5, 0x1423);
+    assert(asByteArray(t1)[0] == 0x5);
+    assert(asByteArray(t1)[1] == 0x23);
+    assert(asByteArray(t1)[2] == 0x14);
 }

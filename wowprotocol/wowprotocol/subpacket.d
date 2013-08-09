@@ -1,6 +1,6 @@
-module protocol.subpacket;
+module wowprotocol.subpacket;
 
-import protocol.opcode;
+import wowprotocol.opcode;
 
 /+
  + Representation of subpacket data inside a packet

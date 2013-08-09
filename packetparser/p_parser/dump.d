@@ -7,14 +7,14 @@ module p_parser.dump;
 
 import std.datetime;
 
-import std.range;
+import util.protocol.direction;
 
-enum Direction : uint { c2s = 0, s2c = 1,};
+import std.range;
 
 struct PacketDump {
     ubyte[] data;
     uint opcode;
-	Direction direction;
+	util.protocol.direction.Direction direction;
 	SysTime dateTime;
     uint sessionId;
 }

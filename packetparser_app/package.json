@@ -11,9 +11,8 @@
 			"importPaths": ["../packetparser"],
 			"dependencies": {
 				"yawr_util": {"version": "~master", "path": "../util"},
-				"vibe-d": {"version": "~master", "path": "../../vibe.d"},
 			},
-			"versions": ["VibeCustomMain", "PacketParserDLL"],
+			"versions": ["PacketParserDLL"],
         },
         {
             "name": "wow15595",
