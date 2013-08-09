@@ -12,6 +12,8 @@ import p_parser.packet_data;
 
 import wowprotocol.session;
 
+import util.struct_printer;
+
 static Session[uint] sessions;
 
 Session getSession(uint sessionId)
@@ -36,7 +38,7 @@ void parse(InputRange!PacketDump packets) nothrow
                 writeln("No opcode handler for packet");
                 continue;
             }
-            writefln("%s", p.toHex());
+            writefln("%s", packetDump.data.toHex());
             void[] data = read(p, opcode, packetDump.direction);
             writefln("%s", print(opcode, packetDump.direction, data));
             stdin.readln();

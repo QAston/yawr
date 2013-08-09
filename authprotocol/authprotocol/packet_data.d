@@ -41,7 +41,7 @@ template Packet(Opcode OPCODE, Direction DIRECTION, ProtocolVersion VER)
 +/
 void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR, VER)),Opcode OP,Direction DIR, ProtocolVersion VER)(DATA_TYPE inputData)
 {
-    util.protocol.packet_data.testPacketData!((ubyte[] buffer)=>new PacketStream!false(buffer, null),(ubyte[] buffer)=>new PacketStream!true(buffer, null))(inputData);
+    util.protocol.packet_data.testPacketData!((ubyte[] buffer)=>new PacketStream!false(null),(ubyte[] buffer)=>new PacketStream!true(buffer, null))(inputData);
 }
 
 /+
@@ -53,7 +53,7 @@ void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR, VER)),Opcode OP
 +/
 void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR, VER)),Opcode OP,Direction DIR, ProtocolVersion VER)(ubyte[] inputBinary, DATA_TYPE expectedResult)
 {
-    util.protocol.packet_data.testPacketData!((ubyte[] buffer)=>new PacketStream!false(buffer, null),(ubyte[] buffer)=>new PacketStream!true(buffer, null))(inputBinary, expectedResult);
+    util.protocol.packet_data.testPacketData!((ubyte[] buffer)=>new PacketStream!false(null),(ubyte[] buffer)=>new PacketStream!true(buffer, null))(inputBinary, expectedResult);
 }
 
 /// ditto

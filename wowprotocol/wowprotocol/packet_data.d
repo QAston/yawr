@@ -31,7 +31,7 @@ template Packet(Opcode OPCODE, Direction DIRECTION)
  +/
 void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Direction DIR)(DATA_TYPE inputData)
 {
-    util.protocol.packet_data.testPacketData!((ubyte[] buffer)=>new PacketStream!false(buffer, &((new Session()).compress)),(ubyte[] buffer)=>new PacketStream!true(buffer, &((new Session()).decompress)))(inputData);
+    util.protocol.packet_data.testPacketData!((ubyte[] buffer)=>new PacketStream!false(&((new Session()).compress)),(ubyte[] buffer)=>new PacketStream!true(buffer, &((new Session()).decompress)))(inputData);
 }
 
 /+
@@ -43,7 +43,7 @@ void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Dire
  +/
 void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR)),Opcode OP,Direction DIR)(ubyte[] inputBinary, DATA_TYPE expectedResult)
 {
-    util.protocol.packet_data.testPacketData!((ubyte[] buffer)=>new PacketStream!false(buffer, &((new Session()).compress)),(ubyte[] buffer)=>new PacketStream!true(buffer, &((new Session()).decompress)))(inputBinary, expectedResult);
+    util.protocol.packet_data.testPacketData!((ubyte[] buffer)=>new PacketStream!false(&((new Session()).compress)),(ubyte[] buffer)=>new PacketStream!true(buffer, &((new Session()).decompress)))(inputBinary, expectedResult);
 }
 
 /// ditto

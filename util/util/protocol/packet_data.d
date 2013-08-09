@@ -108,7 +108,7 @@ void testPacketData(alias GET_OUTPUT_STREAM, alias GET_INPUT_STREAM, DATA_TYPE)(
     scope(failure)
     {
         writeln("Input binary:");
-        writeln(inputStream.toHex);
+        writeln(inputBinary.toHex);
         writeln("Expected result:");
         writeln(fieldsToString(expectedResult));
     }

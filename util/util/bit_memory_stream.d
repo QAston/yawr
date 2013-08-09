@@ -8,12 +8,14 @@ import vibe.core.stream;
 import util.stream;
 
 import vibe.core.stream;
+import vibe.utils.array;
+import vibe.utils.memory;
 
 /+
  + RandomAccess stream interface extended with bit-wise reads/writes
  + Assumes that flushes for bit operations are not neccesary
  +/
-interface RandomAccessBitStream : RandomAccessStream, InputBitStream {
+interface OutputBitStream : OutputStream {
 
     /+
     + Writes single bit to the stream.
@@ -33,61 +35,37 @@ interface InputBitStream : InputStream {
     bool readBit();
 }
 
-/+
- + An utility class which allows reading and writing to a memory stream in single bits
- + Based on Memory stream from vibe.d library
- +/
-class BitMemoryStream : RandomAccessBitStream {
-
-    private ubyte[] dataBuffer;
-
-    mixin BitStreamBase!(MemoryStream);
-    mixin BitStreamInput;
-    mixin BitStreamOutput;
-    /+
-     + Args:
-     +   dataBuffer - buffer used by backing stream, can be larget than dataSize and used when resize is called
-     +/
-    this(ubyte[] dataBuffer, bool writable = true, size_t initialSize = size_t.max)
-    {
-        this.dataBuffer = dataBuffer;
-        this.data = new MemoryStream(dataBuffer, writable, initialSize);
-    }
-
-    @property ulong size() const nothrow { return data.size(); }
-    @property bool readable() const nothrow { return data.readable(); }
-    @property bool writable() const nothrow { return data.writable(); }
-
-    ulong tell() nothrow { return data.tell(); }
+class MemoryOutputBitStream : OutputBitStream
+{
+    MemoryOutputStream stream;
+	this(shared(Allocator) alloc = defaultAllocator())
+	{
+		stream = new MemoryOutputStream(alloc);
+	}
 
     ubyte[] getData()
     {
-        return dataBuffer[0..cast(size_t)size()];
+        return stream.data;
     }
-
-    /// Changes position in the stream. Resets in-byte position for bit reads
-    void seek(ulong offset)
-    {
-        flushBits();
-        data.seek(offset);
-    }
+    mixin BitStreamBase;
+    mixin BitStreamOutput!(stream);
 }
 
 /// Wraps an InputStream class and provides bitwise access
-class InputBitStreamWrapper(STREAM : InputStream) : InputBitStream
+class InputBitStreamWrapper : InputBitStream
 {
-    this(STREAM stream)
+    InputStream stream;
+    this(InputStream stream)
     {
-        this.data = stream;
+        this.stream = stream;
     }
-    mixin BitStreamBase!(STREAM);
-    mixin BitStreamInput;
+    mixin BitStreamBase;
+    mixin BitStreamInput!(stream);
 }
 
-mixin template BitStreamBase(STREAM)
+mixin template BitStreamBase()
 {
     private {
-        STREAM data;
         ubyte bitBuffer; // buffer for streaming in bits
         ubyte bitBufferPos;
     }
@@ -98,7 +76,7 @@ mixin template BitStreamBase(STREAM)
     }
 }
 
-mixin template BitStreamInput() {
+mixin template BitStreamInput(alias data) {
     /+
     + Reads bytes from stream
     + Aligned to single byte in memory - if readBit was used call will skip remaining part of current byte
@@ -131,7 +109,7 @@ mixin template BitStreamInput() {
     @property bool dataAvailableForRead() { return data.dataAvailableForRead; }
 }
 
-mixin template BitStreamOutput()
+mixin template BitStreamOutput(alias data)
 {
     /+
     + Writes bytes to stream
@@ -148,18 +126,17 @@ mixin template BitStreamOutput()
     +/
     void writeBit(bool bit)
     {
-        if (bitBufferPos != 0)
-            data.seek(data.tell-1);
         bitBuffer |= (bit ? 1 : 0) << (7 - bitBufferPos);
-        data.swrite!ubyte(bitBuffer);
-
+        if (bitBufferPos == 0)
+            data.swrite!ubyte(bitBuffer);
+        else
+            data.data[data.data.length-1] = bitBuffer;
+        
         ++bitBufferPos;
 
         if (bitBufferPos > 7)
             flushBits();
     }
-
-    @property size_t capacity() const nothrow { return data.capacity(); }
 
     void flush() {data.flush();}
     void finalize() {data.finalize();}
@@ -168,51 +145,43 @@ mixin template BitStreamOutput()
 
 unittest {
     import util.test;
-    test!("BitMemoryStream");
-    ubyte buffer[] = new ubyte[20];
-    BitMemoryStream stream = new BitMemoryStream(buffer);
+    test!("MemoryOutputBitStream");
+    MemoryOutputBitStream stream = new MemoryOutputBitStream();
 
     stream.writeBit(false);
     stream.writeBit(true);
-    assert(stream.tell == 1);
     stream.swrite!byte(6);
-    assert(stream.tell == 2);
     stream.writeBit(true);
     stream.writeBit(false);
     stream.writeBit(true);
-    assert(stream.tell == 3);
     stream.swrite!byte(20);
-    assert(stream.tell == 4);
     stream.writeBit(true);
-    assert(stream.tell == 5);
     stream.writeBit(true);
     stream.writeBit(false);
     stream.writeBit(true);
     stream.writeBit(true);
     stream.writeBit(true);
     stream.writeBit(false);
-    assert(stream.tell == 5);
     stream.writeBit(false);
-    assert(stream.tell == 5);
     stream.writeBit(false);
-    assert(stream.tell == 6);
-    stream.seek(0);
-    assert(stream.readBit == false);
-    assert(stream.readBit == true);
-    assert(stream.tell == 1);
-    assert(stream.sread!byte == 6);
-    assert(stream.tell == 2);
-    assert(stream.readBit == true);
-    assert(stream.tell == 3);
-    assert(stream.readBit == false);
-    assert(stream.readBit == true);
-    assert(stream.sread!byte == 20);
-    assert(stream.readBit == true);
-    assert(stream.readBit == true);
-    assert(stream.readBit == false);
-    assert(stream.readBit == true);
-    assert(stream.readBit == true);
-    assert(stream.readBit == true);
-    assert(stream.readBit == false);
-    assert(stream.readBit == false);
+    test!("InputBitStreamWrapper");
+    ubyte[] data = stream.getData;
+    auto istream = new InputBitStreamWrapper(new MemoryStream(data, false));
+
+    
+    assert(istream.readBit == false);
+    assert(istream.readBit == true);
+    assert(istream.sread!byte == 6);
+    assert(istream.readBit == true);
+    assert(istream.readBit == false);
+    assert(istream.readBit == true);
+    assert(istream.sread!byte == 20);
+    assert(istream.readBit == true);
+    assert(istream.readBit == true);
+    assert(istream.readBit == false);
+    assert(istream.readBit == true);
+    assert(istream.readBit == true);
+    assert(istream.readBit == true);
+    assert(istream.readBit == false);
+    assert(istream.readBit == false);
 }
