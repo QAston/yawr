@@ -38,7 +38,7 @@ interface InputBitStream : InputStream {
 class MemoryOutputBitStream : OutputBitStream
 {
     MemoryOutputStream stream;
-	this(shared(Allocator) alloc = defaultAllocator())
+	this(Allocator alloc = defaultAllocator())
 	{
 		stream = new MemoryOutputStream(alloc);
 	}

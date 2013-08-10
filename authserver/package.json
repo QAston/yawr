@@ -2,7 +2,6 @@
 	"name": "yawr_authserver",
 	"description": "Authserver - app responsible for client authentication - part of Yet Another Wowd Rewrite project",
 	"sourcePaths": ["authserver"],
-	"dflags": ["-unittest"],
 	"targetType": "executable",
 	"dependencies": {
 		"yawr_authprotocol": {"version": "~master", "path": "../authprotocol"},

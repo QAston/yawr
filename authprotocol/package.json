@@ -5,7 +5,6 @@
 	"sourcePaths": ["authprotocol"],
     "sourceFiles": ["../wowdefs/wowdefs/wow_versions.d"],
 	"importPaths": [".", "../wowdefs/"],
-	"dflags": ["-unittest"],
 	"dependencies": {
 		"yawr_util": {"version": "~master", "path": "../util"},
 	},
@@ -16,7 +15,6 @@
         {
             "name": "tests",
 			"targetType": "executable",
-			"dflags": ["-unittest"],
 			"sourceFiles": ["../common/tests_main.d"],
 		},
 	]
