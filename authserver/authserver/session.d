@@ -70,6 +70,7 @@ class Session
         catch(Throwable t)
         {
             writeln(t.to!string);
+            end();
         }
     }
 
@@ -108,10 +109,16 @@ class Session
     {
         auto id = opcode*2 + protocolVersion;
         if (id > packetHandlers.length)
+        {
             unexpectedOpcode(opcode);
+            return;
+        }
         auto fun = packetHandlers[opcode*2 + protocolVersion];
         if (fun is null)
+        {
             unexpectedOpcode(opcode);
+            return;
+        }
 
         void delegate() call;
         call.ptr = cast(void*)this;
@@ -150,6 +157,7 @@ class Session
     /// Ends the session - disconnects from client
     void end()
     {
-        connectionStream.close();
+        if (!connectionStream.connected)
+            connectionStream.close();
     }
 }
