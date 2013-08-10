@@ -11,6 +11,7 @@ obj
 *.dll
 
 # project files
+AppData
 .dub
 *.suo
 *.sln

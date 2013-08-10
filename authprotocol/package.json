@@ -5,7 +5,6 @@
 	"sourcePaths": ["authprotocol"],
     "sourceFiles": ["../wowdefs/wowdefs/wow_versions.d"],
 	"importPaths": [".", "../wowdefs/"],
-	"dflags": ["-unittest"],
 	"dependencies": {
 		"yawr_util": {"version": "~master", "path": "../util"},
 	},

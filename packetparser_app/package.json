@@ -2,7 +2,6 @@
 	"name": "yawr_packetparser_app",
 	"description": "PacketParser app - translates given packet dumps into human readable output - part of Yet Another Wowd Rewrite project",
 	"sourcePaths": ["p_parser"],
-	"dflags": ["-unittest"],
     "configurations": [
         {
             "name": "app",
