@@ -4,25 +4,22 @@
 module authserver.conf;
 
 import util.conf;
+import util.log;
 
 immutable string listenInterface;
-immutable ushort listenPort;
+immutable ushort listenPort = 3724;
 immutable string logFile;
-immutable string logFileLevel;
+immutable uint logFileLevel;
 
 shared static this()
 {
-    if (!getOption("listenInterface", cast(string*)&listenInterface, "Ip address of the interface on which server will listen for connections"))
-        listenInterface = "";
+    getOption("listenInterface", cast(string*)&listenInterface, "Ip address of the interface on which server will listen for connections");
 
-    if (!getOption("listenPort", cast(ushort*)&listenPort, "Port number which server will listen for connections"))
-        listenPort = 3724;
+    getOption("listenPort", cast(ushort*)&listenPort, "Port number which server will listen for connections");
+        
+    getOption("logFile", cast(string*)&logFile, "Path to log file");
 
-    if (!getOption("logFile", cast(string*)&logFile, "Path to log file"))
-        logFile = "";
-
-    if (!getOption("logFileLevel", cast(string*)&logFileLevel, "Level of messages to log to logFile"))
-        logFileLevel = "";
+    getOption("logFileLevel", cast(string*)&logFileLevel, "Level of messages to log to logFile");
 }
 
 /+
@@ -31,5 +28,5 @@ shared static this()
 bool read()
 {
     string[] args;
-    return !finalizeCommandLineOptions(&args);
+    return finalizeCommandLineOptions(&args);
 }
