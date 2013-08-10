@@ -5,18 +5,22 @@ import std.stdio;
 import vibe.d : listenTCP, runEventLoop;
 
 import util.stream;
+import util.log;
 
 import authserver.session;
-
-immutable ushort bindPort = 3724;
+static import authserver.conf;
 
 shared static this()
 {
-    // Setup listening on a given port
-	listenTCP(bindPort, (conn){ (new Session(conn)).run(); });
+    if (authserver.conf.listenInterface == "")
+	    listenTCP(authserver.conf.listenPort, (conn){ (new Session(conn)).run(); });
+    else
+	    listenTCP(authserver.conf.listenPort, (conn){ (new Session(conn)).run(); }, authserver.conf.listenInterface);
 }
 
 int main()
 {
+    if (!authserver.conf.read)
+        return 0;
     return runEventLoop();
 }
