@@ -4,7 +4,6 @@
 module authserver.session;
 
 import std.conv;
-import std.stdio;
 
 import wowdefs.wow_versions;
 
@@ -12,6 +11,7 @@ import util.bit_memory_stream;
 import util.struct_printer;
 import util.protocol.direction : Dir = Direction;
 import util.protocol.packet_stream;
+import util.log;
 
 import authprotocol.packet_data;
 import authprotocol.defines;
@@ -23,7 +23,7 @@ import vibe.d;
  + Session class stores all state of a connection
  + Using class instead of thread local data because it's not fiber-local
  +/
-class Session
+final class Session
 {
     TCPConnection connectionStream;
     ProtocolVersion protocolVersion;
@@ -60,8 +60,9 @@ class Session
     void run()
     {
         import util.stream;
+        logDiagnostic(logId~"Starting session");
         try {
-            while(!connectionStream.connected)
+            while(connectionStream.connected)
             {
                 Opcode opc = cast(Opcode)connectionStream.sread!ubyte();
                 receivedPacket(opc);
@@ -69,9 +70,10 @@ class Session
         }
         catch(Throwable t)
         {
-            writeln(t.to!string);
+            logError(logId~"%s", t.to!string);
             end();
         }
+        logDiagnostic(logId~"Ended session");
     }
 
     /+
@@ -98,6 +100,7 @@ class Session
         import util.stream;
         import util.struct_printer;
 
+        logDiagnostic(logId~"Sent packet-opcode: %s", OPCODE.to!string);
         auto packetStream = new PacketStream!false(null);
         packetStream.val(*packet);
         connectionStream.swrite!ubyte(OPCODE);
@@ -128,9 +131,9 @@ class Session
 
     void receivedPacket(Opcode OPCODE : Opcode.AUTH_LOGON_CHALLENGE, ProtocolVersion VER)()
     {
-        writefln("Received opcode: %s", OPCODE.to!string);
+        logDiagnostic(logId~"Received opcode: %s", OPCODE.to!string);
         auto packet = readPacket!(OPCODE, VER);
-        writeln(packet.fieldsToString());
+        logDebug(logId~"Received opcode: %s \n", packet.fieldsToString());
 
         protocolVersion = packet.build.major >= MajorWowVersion.TBC ? ProtocolVersion.POST_BC : ProtocolVersion.PRE_BC;
         auto response = Packet!(Opcode.AUTH_LOGON_CHALLENGE, Dir.s2c, VER)();
@@ -150,14 +153,29 @@ class Session
     /// 
     void unexpectedOpcode(Opcode op)
     {
-        writefln("Uhnandled opcode: %s", op.to!string);
+        logError(logId~"Received unexpected opcode: %s", op.to!string);
         end();
     }
 
     /// Ends the session - disconnects from client
     void end()
     {
+        logDiagnostic(logId~"Ending session", );
         if (!connectionStream.connected)
             connectionStream.close();
+    }
+
+    /+
+     + Returns string identifier for logging
+     +/
+    string logId()
+    {
+        import std.array;
+        auto str = appender!string();
+        str.put("Session(");
+        str.put("peerIP: " ~connectionStream.peerAddress.to!string);
+        str.put(" protocol: " ~protocolVersion.to!string);
+        str.put("): ");
+        return str.data();
     }
 }
