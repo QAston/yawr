@@ -21,8 +21,8 @@ shared static this()
     if (!getOption("logFile", cast(string*)&logFile, "Path to log file"))
         logFile = "";
 
-    if (!getOption("logFileLevel", cast(string*)&logFile, "Level of messages to log to logFile"))
-        logFile = "";
+    if (!getOption("logFileLevel", cast(string*)&logFileLevel, "Level of messages to log to logFile"))
+        logFileLevel = "";
 }
 
 /+
