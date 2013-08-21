@@ -13,6 +13,7 @@ import deimos.openssl.err;
 
 /++
 + Copy on write BigNumber structure - a dlang friendly interface to deimos.openssl.bn
++ Sadly not immutable-correct due to DMD issues with assignment in constructors :(
 +/
 struct BigNumber
 {
@@ -20,25 +21,24 @@ private:
     RefCounted!(bignum_st*) bigNum;
     bool clearOnDestroy;
 public:
-    invariant()
-    {
-        assert(bigNum.refCountedPayload !is null);
-    }
-
     /// clearOnDestroy - if true erases data before freeing memory
     this(BigNumber rhs, bool clearOnDestroy = false)
     {
-        bigNum = RefCounted!(bignum_st*)(rhs.payload);
-        if (rhs.clearOnDestroy)
-            clearOnDestroy = rhs.clearOnDestroy;
+        this(rhs.payload, rhs.clearOnDestroy ? true : clearOnDestroy);
     }
 
     /// BigNumber equal to given binary representation; clearOnDestroy - if true erases data before freeing memory
-    this(ubyte[] array, Endian endian, bool clearOnDestroy = false)
+    this(in ubyte[] array, Endian endian, bool clearOnDestroy = false)
     {
         if (endian == Endian.littleEndian)
-            reverse(array);
-        this(BN_bin2bn(array.ptr, array.length, null), clearOnDestroy);
+        {
+            import std.conv;
+            auto a  = array.dup;
+            reverse(a);
+            this(BN_bin2bn(a.to!(const ubyte[]).ptr, array.length, null), clearOnDestroy);
+        }
+        else
+            this(BN_bin2bn(array.ptr, array.length, null), clearOnDestroy);
     }
 
     /// BigNumber equal to given val clearOnDestroy - if true erases data before freeing memory
@@ -46,8 +46,7 @@ public:
     {
         auto bn = BN_new();
         set(bn, val);
-        bigNum = bn;
-        this.clearOnDestroy = clearOnDestroy;
+        this(bn, clearOnDestroy);
     }
 
     ~this()
@@ -108,7 +107,7 @@ public:
             throw new BigNumberException(ERR_peek_last_error());
     }
 
-    private static void enforcePositive(BigNumber num)
+    private static void enforcePositive(const BigNumber num)
     {
         if (BN_is_negative(num.payload))
         {
@@ -133,21 +132,20 @@ public:
     }
 
     ///
-    bool isPositive()
+    bool isPositive() const
     {
         return !BN_is_negative(payload);
     }
 
     ///
-    bool isNegative()
+    bool isNegative() const
     {
         return BN_is_negative(payload);
     }
 
-    ///
-    void setNegative(bool neg)
+    bool isZero() const
     {
-        BN_set_negative(payload, neg ? 1 : 0);
+        return BN_is_zero(payload);
     }
 
     ///
@@ -158,67 +156,43 @@ public:
     }
 
     ///
-    bool opEquals(BigNumber bn) const
+    bool opEquals(in BigNumber bn) const
     {
         return BN_cmp(payload, bn.payload) == 0;
     }
 
     ///
-    bool opEquals(T)(T bn) const if (isIntegral!T)
+    bool opEquals(T)(in T bn) const if (isIntegral!T)
     {
         return this.opEquals(BigNumber(bn));
     }
 
     ///
-    int opCmp(BigNumber bn) const
+    int opCmp(in BigNumber bn) const
     {
         return BN_cmp(payload, bn.payload);
     }
 
     ///
-    int opCmp(T)(T bn) const if (isIntegral!T)
+    int opCmp(T)(in T bn) const if (isIntegral!T)
     {
         return this.opCmp(BigNumber(bn));
     }
 
     ///
-    BigNumber opAssign(T)(T val) if (isIntegral!T)
-    {
-        auto bn = allocBN();
-        set(bn, val);
-        clearOnDestroy = false;
-        bigNum = bn;
-        return this;
-    }
-
-    ///
-    BigNumber opAssign(T:BigNumber)(T x)
-    {
-        bigNum = x.payload;
-        clearOnDestroy = x.clearOnDestroy;
-        return this;
-    }
-
-    BigNumber opOpAssign(string op, T)(T x)
-    {
-        this = this.opBinary!op(x);
-        return this;
-    }
-
-    ///
-    BigNumber opBinary(string op, T)(T val) const if (isIntegral!T)
+    BigNumber opBinary(string op, T)(in T val) const if (isIntegral!T)
     {
         return opBinary!op(BigNumber(val));
     }
 
     ///
-    BigNumber opBinaryRight(string op, T)(T val) const if (isIntegral!T)
+    BigNumber opBinaryRight(string op, T)(in T val) const if (isIntegral!T)
     {
         return BigNumber(val).opBinary!op(this);
     }
 
     ///
-    BigNumber opBinary(string op:"+")(BigNumber bn) const
+    BigNumber opBinary(string op:"+")(in BigNumber bn) const
     {
         auto ret = allocBN();
         enforceArithm(BN_add(ret, payload, bn.payload));
@@ -226,7 +200,7 @@ public:
     }
 
     ///
-    BigNumber opBinary(string op:"-")(BigNumber bn) const
+    BigNumber opBinary(string op:"-")(in BigNumber bn) const
     {
         auto ret = allocBN();
         enforceArithm(BN_sub(ret, payload, bn.payload));
@@ -234,7 +208,7 @@ public:
     }
 
     ///
-    BigNumber opBinary(string op:"*")(BigNumber bn) const
+    BigNumber opBinary(string op:"*")(in BigNumber bn) const
     {
         BN_CTX *bnctx;
         auto ret = allocBN();
@@ -247,7 +221,7 @@ public:
     }
 
     ///
-    BigNumber opBinary(string op:"/")(BigNumber bn) const
+    BigNumber opBinary(string op:"/")(in BigNumber bn) const
     {
         BN_CTX *bnctx;
         auto ret = allocBN();
@@ -260,7 +234,7 @@ public:
     }
 
     ///
-    BigNumber opBinary(string op:"%")(BigNumber bn) const
+    BigNumber opBinary(string op:"%")(in BigNumber bn) const
     {
         BN_CTX *bnctx;
         auto ret = allocBN();
@@ -273,7 +247,7 @@ public:
     }
 
     ///
-    BigNumber opBinary(string op:"^^")(BigNumber bn) const
+    BigNumber opBinary(string op:"^^")(in BigNumber bn) const
     {
         auto ret = allocBN();
         BN_CTX *bnctx;
@@ -286,7 +260,7 @@ public:
     }
 
     /// Raises number to given power and calcs given modulus at the same time
-    BigNumber modExp(BigNumber power, BigNumber modulus) const
+    BigNumber modExp(in BigNumber power, in BigNumber modulus) const
     {
         auto ret = allocBN();
         BN_CTX *bnctx;
@@ -299,7 +273,7 @@ public:
     }
 
     /// Returns length of a byte array with binary representation of the number
-    size_t byteArrayLength()
+    size_t byteArrayLength() const
     {
         enforcePositive(this);
         return BN_num_bytes(payload);
@@ -325,7 +299,7 @@ public:
     }
 
     /// Converts BigNumber to array of bytes with given endianess and min array size if specified
-    ubyte[] toByteArray(Endian endianess, size_t minSize = size_t.max)
+    ubyte[] toByteArray(Endian endianess, size_t minSize = size_t.max) const
     {
         enforcePositive(this);
         int length;
@@ -392,33 +366,30 @@ unittest {
     assert(t3==t4);
     assert(t3.toHash() == t4.toHash());
     assert(t3.byteArrayLength == 1);
-    t4 =70;
+    BigNumber t6 =70;
     assert(t3==BigNumber(56));
-    assert(t4 == BigNumber(70u));
-    assert(t4 > t3);
-    assert(t4 >= t3);
-    assert(t3 < t4);
+    assert(t6 == BigNumber(70u));
+    assert(t6 > t3);
+    assert(t6 >= t3);
+    assert(t3 < t6);
     assert(t3==t3);
-    assert(t3 <= t4);
+    assert(t3 <= t6);
     auto t5 = random(2);
     assert(t5 < BigNumber(4u));
     assert(t5.toString() !is null);
     assert(t3.isPositive);
     assert(!t3.isNegative);
-    ubyte ut4 = 70;
+    ubyte ut6 = 70;
     import util.bit;
-    auto bt4 = asByteArray(ut4);
-    assert(t4.toByteArray(Endian.littleEndian) == bt4);
+    auto bt6 = asByteArray(ut6);
+    assert(t6.toByteArray(Endian.littleEndian) == bt6);
     import std.conv;
-    assert(ut4.to!string == t4.to!string);
-    t4 -= 10u;
-    assert(t4 == 60);
-    assert(t4 == 60u);
-    assert(t4.toString == "60");
-    assert(t4.toHexString == "3C");
-    assert(t4 > 59u);
-    assert(t4 < 61);
-    t4.setNegative(true);
-    assert(t4==-60);
-    assert(t4.isNegative);
+    assert(ut6.to!string == t6.to!string);
+    auto t7 = t6 - 10u;
+    assert(t7 == 60);
+    assert(t7 == 60u);
+    assert(t7.toString == "60");
+    assert(t7.toHexString == "3C");
+    assert(t7 > 59u);
+    assert(t7 < 61);
 }
