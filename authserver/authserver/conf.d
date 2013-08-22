@@ -10,16 +10,23 @@ immutable string listenInterface;
 immutable ushort listenPort = 3724;
 immutable string logFile;
 immutable uint logFileLevel;
+immutable string authDbConnectionString;
+
+private shared void loadOpt(T)(string optName, immutable ref T loadTo, string description)
+{
+    getOption(optName, cast(T*)&loadTo, description);
+}
 
 shared static this()
 {
-    getOption("listenInterface", cast(string*)&listenInterface, "Ip address of the interface on which server will listen for connections");
+    loadOpt("listenInterface", listenInterface, "Ip address of the interface on which server will listen for connections");
 
-    getOption("listenPort", cast(ushort*)&listenPort, "Port number which server will listen for connections");
+    loadOpt("listenPort", listenPort, "Port number which server will listen for connections");
         
-    getOption("logFile", cast(string*)&logFile, "Path to log file");
+    loadOpt("logFile", logFile, "Path to log file");
 
-    getOption("logFileLevel", cast(string*)&logFileLevel, "Level of messages to log to logFile");
+    loadOpt("logFileLevel", logFileLevel, "Level of messages to log to logFile");
+
 }
 
 /+
