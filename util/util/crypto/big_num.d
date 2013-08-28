@@ -41,6 +41,15 @@ public:
             this(BN_bin2bn(array.ptr, array.length, null), clearOnDestroy);
     }
 
+    /// takes a string in a HEX format
+    this(string s, bool clearOnDestroy = false)
+    {
+        import std.string;
+        auto bn = BN_new();
+        BN_hex2bn(&bn, s.toStringz);
+        this(bn, clearOnDestroy);
+    }
+
     /// BigNumber equal to given val clearOnDestroy - if true erases data before freeing memory
     this(T)(T val, bool clearOnDestroy = false) if (isIntegral!T)
     {
