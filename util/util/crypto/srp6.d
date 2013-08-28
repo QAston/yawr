@@ -167,7 +167,7 @@ protected:
         return BigNumber(sha1Of(salt ~ sha1Of(ucp.data())), Endian.bigEndian);
     }
 
-    // M = SHA1(SHA1(N) XOR SHA1(g) | SHA1H(username) | s | A | B | K)
+    // M = SHA1(SHA1(N) XOR SHA1(g) | SHA1(username) | s | A | B | K)
     ubyte[] calculateM1(in ubyte[] username, in ubyte[] s, in ubyte[] A, in ubyte[] B, in ubyte[] K) const
     {
         auto mBytes = appender!(ubyte[])();
@@ -182,7 +182,7 @@ protected:
         mBytes.put(B);
         mBytes.put(K);
 
-        return mBytes.data();
+        return sha1Of(mBytes.data());
     }
 
     // M2 = SHA1(A | M1 | K)
@@ -277,7 +277,7 @@ class ServerChallenge
 
     ubyte[] calculateB(in ubyte[] userv)
     {
-        return srp.calculateB(b, userv).toByteArray(Endian.bigEndian);
+        return srp.calculateB(userv, b).toByteArray(Endian.bigEndian);
     }
     
 	immutable(ServerProof) challenge(in ubyte[] username, in ubyte[] usersalt, in ubyte[] userv, in ubyte[] A)
@@ -317,8 +317,12 @@ immutable class ServerProof
         }
     }
 
-    auto authenticate(in ubyte[] M1) pure
+    auto authenticate(in ubyte[] M1)
     {
+        import std.stdio;
+        writeln(M1);
+        writeln(this.M1);
+        writeln(M2);
         if (M1 != this.M1)
             return null;
         return new Tuple!(immutable ubyte[],immutable  ubyte[])(M2, K);
@@ -382,6 +386,7 @@ unittest {
     assert(A == client.A);
 
     auto server = new ServerChallenge(b, srp);
+    assert(B == server.calculateB(v));
     auto serverProof = server.challenge(username, s, v, A);
     assert(B == serverProof.B);
     assert(secret == serverProof.S);

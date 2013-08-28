@@ -67,4 +67,11 @@ enum RealmFlags : ubyte
     REALM_FLAG_RECOMMENDED                       = 0x20,
     REALM_FLAG_NEW                               = 0x40,
     REALM_FLAG_FULL                              = 0x80
-};
+}
+
+enum AccountFlags : uint
+{
+    GM = 0x01,
+    TRIAL = 0x08,
+    PRO_PASS = 0x00800000,
+}

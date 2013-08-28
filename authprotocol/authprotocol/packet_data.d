@@ -261,7 +261,7 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.AUTH_LOGON_PROOF && PACKET.dir
         align(1):
         ubyte M2[20];
         static if (PACKET.ver == ProtocolVersion.POST_BC)
-            uint  unk1;
+            AccountFlags flags;
         ushort unk2;
         static if (PACKET.ver == ProtocolVersion.POST_BC)
             ushort unk3;

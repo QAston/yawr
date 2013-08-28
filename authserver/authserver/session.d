@@ -31,6 +31,8 @@ final class Session
 {
     TCPConnection connectionStream;
     ProtocolVersion protocolVersion;
+    ServerChallenge challenge;
+    AuthInfo* authInfo;
 
     immutable static void function()[(Opcode.max + 1) * 2] packetHandlers;
     static SRP srp;
@@ -51,6 +53,7 @@ final class Session
             }
         }
         import util.crypto.big_num;
+        //srp = new SRP(cast(ubyte[])x"894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7", [cast(ubyte)7]);
         srp = new SRP(cast(ubyte[])x"894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7", [cast(ubyte)7]);
     }
 
@@ -139,6 +142,7 @@ final class Session
 
     void receivedPacket(Opcode OPCODE : Opcode.AUTH_LOGON_CHALLENGE, ProtocolVersion VER)()
     {
+        import std.algorithm;
         import util.crypto.big_num;
         import std.system;
         logDiagnostic(logId~"Received opcode: %s", OPCODE.to!string);
@@ -152,7 +156,6 @@ final class Session
         cmd.sql = "SELECT id, username, sha_pass_hash, sessionkey, v, s FROM account WHERE username=?";
         cmd.prepare();
         cmd.bindParameterTuple(packet.accountName);
-        logDiagnostic(logId~"auth_logon 2");
         auto result = cmd.execPreparedResult();
         if (result.empty())
         {
@@ -163,22 +166,55 @@ final class Session
         }
 
         assert(result.length == 1);
-        auto authInfo = AuthInfo();
-        result.front.toStruct(authInfo);
-        auto challenge = new ServerChallenge(cast(ubyte[])x"E487CB59 D31AC550 471E81F0 0F6928E0 1DDA08E9 74A004F4 9E61F5D1 05284D20",srp);
-        //auto proof = challenge.challenge(authInfo.username, authInfo.s, authInfo.v, result.A);
+        assert(authInfo is null);
+        authInfo = new AuthInfo();
+        result.front.toStruct(*authInfo);
+
+        assert(challenge is null);
+        challenge = new ServerChallenge(cast(ubyte[])x"E487CB59 D31AC550 471E81F0 0F6928E0 1DDA08E9 74A004F4 9E61F5D1 05284D20",srp);
         response.result = AuthResult.WOW_SUCCESS;
         auto secInf = typeof(response).SecurityInfo();
-        auto bbytes = challenge.calculateB(BigNumber(authInfo.v).toByteArray(Endian.bigEndian));
+        auto bbytes = challenge.calculateB(BigNumber(authInfo.v).toByteArray(Endian.bigEndian)).reverse;
         bbytes.length = 32;
         secInf.B []= bbytes[];
-        secInf.g = srp.gbytes();
-        secInf.N = srp.Nbytes();
-        secInf.s []= BigNumber(authInfo.s).toByteArray(Endian.bigEndian)[];
-        secInf.unkRand []= util.crypto.big_num.random(16*8).toByteArray(Endian.bigEndian)[];
+        secInf.g = srp.gbytes().reverse;
+        secInf.N = srp.Nbytes().reverse;
+        secInf.s []= BigNumber(authInfo.s).toByteArray(Endian.littleEndian)[];
+        //secInf.unkRand []= util.crypto.big_num.random(16*8).toByteArray(Endian.littleEndian)[];
 
         response.info = secInf;
         
+        writePacket(&response);
+    }
+
+    void receivedPacket(Opcode OPCODE : Opcode.AUTH_LOGON_PROOF, ProtocolVersion VER)()
+    {
+        import std.algorithm;
+        import util.crypto.big_num;
+        import std.system;
+        auto packet = readPacket!(OPCODE, VER);
+        auto response = Packet!(Opcode.AUTH_LOGON_PROOF, Dir.s2c, VER)();
+
+        auto proof = challenge.challenge(cast(ubyte[])authInfo.username, BigNumber(authInfo.s).toByteArray(Endian.bigEndian), BigNumber(authInfo.v).toByteArray(Endian.bigEndian), packet.A.reverse);
+
+        auto authResult = proof.authenticate(packet.M1.reverse);
+        if (authResult is null)
+        {
+            response.error = AuthResult.WOW_FAIL_UNKNOWN_ACCOUNT;
+            response.unkAccError = typeof(response).UnknownAccError();
+            writePacket(&response);
+            end();
+            return;
+        }
+
+        response.error = AuthResult.WOW_SUCCESS;
+        auto respProof = typeof(response).Proof();
+        respProof.M2 []= (*authResult)[0].dup.reverse[];
+        static if (VER == ProtocolVersion.POST_BC)
+        {
+            respProof.flags = AccountFlags.PRO_PASS;
+        }
+
         writePacket(&response);
     }
     
