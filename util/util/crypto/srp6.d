@@ -27,13 +27,23 @@ final class SRP
         BigNumber k;
     }
 
+    public ubyte[] Nbytes()
+    {
+        return N.toByteArray(Endian.bigEndian);
+    }
+
+    public ubyte[] gbytes()
+    {
+        return g.toByteArray(Endian.bigEndian);
+    }
+
     /++
     + Needs to be initialized with prime N and generator g
     +/
-    this(BigNumber N, BigNumber g)
+    this(in ubyte[] nbytes, in ubyte[] gbytes)
     {
-        this.N = N;
-        this.g = g;
+        this.N = BigNumber(nbytes, Endian.bigEndian);
+        this.g = BigNumber(gbytes, Endian.bigEndian);
         auto Ng = appender!(ubyte[]);
         Ng.put(N.toByteArray(Endian.bigEndian));
         Ng.put(pad(g.toByteArray(Endian.bigEndian)));
@@ -73,17 +83,15 @@ final class SRP
     +/
     immutable(ServerProof) serverChallange(in ubyte[] username, in ubyte[] salt, in ubyte[] vbytes, in ubyte[] Abytes, in ubyte[] bbytes) const
     {
-        import std.stdio;
         auto v = BigNumber(vbytes, Endian.bigEndian);
 
-        auto A = BigNumber(Abytes, Endian.bigEndian);
         auto b = BigNumber(bbytes, Endian.bigEndian);
 
-        // B = (k*v + g^b) % N
-        BigNumber B = (k*v + g.modExp(b, N)) % N;
+        BigNumber B = calculateB(v, b);
 
         auto Bbytes = B.toByteArray(Endian.bigEndian);
 
+        auto A = BigNumber(Abytes, Endian.bigEndian);
         auto u = calculate_u(Abytes, Bbytes);
 
         // S = (A * v^u) ^ b % N
@@ -112,6 +120,22 @@ final class SRP
     BigNumber calculate_v(in BigNumber x) const
     {
         return g.modExp(x, N);
+    }
+
+    // B = (k*v + g^b) % N
+    BigNumber calculateB(in BigNumber v, in BigNumber b) const
+    {
+        return (k*v + g.modExp(b, N)) % N;
+    }
+
+    // B = (k*v + g^b) % N
+    BigNumber calculateB(in ubyte[] vbytes, in ubyte[] bbytes) const
+    {
+        auto v = BigNumber(vbytes, Endian.bigEndian);
+
+        auto b = BigNumber(bbytes, Endian.bigEndian);
+
+        return calculateB(v, b);
     }
 
 protected:
@@ -250,6 +274,11 @@ class ServerChallenge
     	this.b = b.to!(typeof(this.b));
         this.srp = srp;
     }
+
+    ubyte[] calculateB(in ubyte[] userv)
+    {
+        return srp.calculateB(b, userv).toByteArray(Endian.bigEndian);
+    }
     
 	immutable(ServerProof) challenge(in ubyte[] username, in ubyte[] usersalt, in ubyte[] userv, in ubyte[] A)
 	{
@@ -342,7 +371,7 @@ unittest {
         3499B200 210DCC1F 10EB3394 3CD67FC8 8A2F39A4 BE5BEC4E C0A3212D
         C346D7E4 74B29EDE 8A469FFE CA686E5A";
 
-    auto srp = new SRP(BigNumber(N, Endian.bigEndian), BigNumber(2));
+    auto srp = new SRP(N, [cast(ubyte)2]);
 
     assert(srp.calculate_v(srp.calculate_x(s, username, password)).toByteArray(Endian.bigEndian) == v);
 
