@@ -13,9 +13,13 @@ import util.protocol.direction : Dir = Direction;
 import util.protocol.packet_stream;
 import util.log;
 
+import util.crypto.srp6;
+
 import authprotocol.packet_data;
 import authprotocol.defines;
 import authprotocol.opcode;
+
+import authserver.db;
 
 import vibe.d;
 
@@ -29,6 +33,7 @@ final class Session
     ProtocolVersion protocolVersion;
 
     immutable static void function()[(Opcode.max + 1) * 2] packetHandlers;
+    static SRP srp;
 
     shared static this()
     {
@@ -45,6 +50,8 @@ final class Session
                 mixin("setHandler!(Opcode."~ opcodeString~", ProtocolVersion."~ver.to!string~");");
             }
         }
+        import util.crypto.big_num;
+        srp = new SRP(cast(ubyte[])x"894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7", [cast(ubyte)7]);
     }
 
 
@@ -105,6 +112,7 @@ final class Session
         packetStream.val(*packet);
         connectionStream.swrite!ubyte(OPCODE);
         connectionStream.write(packetStream.getData);
+        logDebug(logId~fieldsToString(*packet));
     }
 
     // A dispatcher for received packets
@@ -131,15 +139,47 @@ final class Session
 
     void receivedPacket(Opcode OPCODE : Opcode.AUTH_LOGON_CHALLENGE, ProtocolVersion VER)()
     {
+        import util.crypto.big_num;
+        import std.system;
         logDiagnostic(logId~"Received opcode: %s", OPCODE.to!string);
         auto packet = readPacket!(OPCODE, VER);
         logDebug(logId~"Received opcode: %s \n", packet.fieldsToString());
 
         protocolVersion = packet.build.major >= MajorWowVersion.TBC ? ProtocolVersion.POST_BC : ProtocolVersion.PRE_BC;
         auto response = Packet!(Opcode.AUTH_LOGON_CHALLENGE, Dir.s2c, VER)();
-        response.result = AuthResult.WOW_FAIL_BANNED;
+
+        auto cmd = getDbCmd();
+        cmd.sql = "SELECT id, username, sha_pass_hash, sessionkey, v, s FROM account WHERE username=?";
+        cmd.prepare();
+        cmd.bindParameterTuple(packet.accountName);
+        logDiagnostic(logId~"auth_logon 2");
+        auto result = cmd.execPreparedResult();
+        if (result.empty())
+        {
+            response.result = AuthResult.WOW_FAIL_UNKNOWN_ACCOUNT;
+            writePacket(&response);
+            end();
+            return;
+        }
+
+        assert(result.length == 1);
+        auto authInfo = AuthInfo();
+        result.front.toStruct(authInfo);
+        auto challenge = new ServerChallenge(cast(ubyte[])x"E487CB59 D31AC550 471E81F0 0F6928E0 1DDA08E9 74A004F4 9E61F5D1 05284D20",srp);
+        //auto proof = challenge.challenge(authInfo.username, authInfo.s, authInfo.v, result.A);
+        response.result = AuthResult.WOW_SUCCESS;
+        auto secInf = typeof(response).SecurityInfo();
+        auto bbytes = challenge.calculateB(BigNumber(authInfo.v).toByteArray(Endian.bigEndian));
+        bbytes.length = 32;
+        secInf.B []= bbytes[];
+        secInf.g = srp.gbytes();
+        secInf.N = srp.Nbytes();
+        secInf.s []= BigNumber(authInfo.s).toByteArray(Endian.bigEndian)[];
+        secInf.unkRand []= util.crypto.big_num.random(16*8).toByteArray(Endian.bigEndian)[];
+
+        response.info = secInf;
+        
         writePacket(&response);
-        end();
     }
     
     /+
