@@ -119,6 +119,8 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.AUTH_LOGON_CHALLENGE && PACKET
         ubyte[32] B;
         ubyte[] g;
         ubyte[] N;
+        ubyte[32] s;
+        ubyte[16] unkRand;
         Flags!SecurityFlags flags;
         Opt!Pin pin;
         Opt!Matrix matrix;
@@ -130,6 +132,8 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.AUTH_LOGON_CHALLENGE && PACKET
             p.valArray(g);
             p.valCount!ubyte(N);
             p.valArray(N);
+            p.valArray(s);
+            p.valArray(unkRand);
             p.val!(as!ubyte)(flags);
             if (flags & SecurityFlags.PIN_INPUT)
                 p.val(pin);
