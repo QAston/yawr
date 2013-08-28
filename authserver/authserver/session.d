@@ -161,7 +161,7 @@ final class Session
     void end()
     {
         logDiagnostic(logId~"Ending session", );
-        if (!connectionStream.connected)
+        if (connectionStream.connected)
             connectionStream.close();
     }
 
