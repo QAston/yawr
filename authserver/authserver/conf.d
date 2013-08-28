@@ -27,6 +27,7 @@ shared static this()
 
     loadOpt("logFileLevel", logFileLevel, "Level of messages to log to logFile");
 
+    loadOpt("authDbConnectionString", authDbConnectionString, "Mysql connection string in format: host=localhost;user=user;pwd=password;db=auth");
 }
 
 /+

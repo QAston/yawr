@@ -5,6 +5,7 @@
 	"targetType": "executable",
 	"dependencies": {
 		"yawr_authprotocol": {"version": "~master", "path": "../authprotocol"},
+        "mysql-native": "~master",
 	},
     "configurations": [
         {

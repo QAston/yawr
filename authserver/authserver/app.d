@@ -3,12 +3,12 @@ module authserver.app;
 import std.conv;
 
 import vibe.d : listenTCP, runEventLoop;
-
-import util.stream;
 import util.log;
 
 import authserver.session;
 static import authserver.conf;
+import authserver.db;
+
 
 shared static this()
 {
@@ -33,7 +33,9 @@ int main()
             setLogFile(authserver.conf.logFile, authserver.conf.logFileLevel.to!LogLevel);
             logDiagnostic("log set for file %s", authserver.conf.logFile);
         }
-    
+
+        authserver.db.init();
+
         logInfo("authserver started");
         ret = runEventLoop();
     }
