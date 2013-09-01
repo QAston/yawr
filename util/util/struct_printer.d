@@ -103,7 +103,7 @@ unittest {
 /+
 + Returns string with a hex dump of a stream
 +/
-public string toHex(ubyte[] data)
+public string toHex(const ubyte[] data)
 {
     import std.ascii, std.format;
     import std.array;
