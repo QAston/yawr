@@ -17,8 +17,10 @@ import util.crypto.big_num;
 
 /++
 + Provides calculations for srp6a protocol
++ IOENDIAN specifies if ubyte[] numeric data input and output is littleEndian or bigEndian
++ littleEndian is custom Blizzard's extension
 +/
-final class SRP
+final class SRP(Endian IOENDIAN)
 {
     protected
     {
@@ -27,18 +29,20 @@ final class SRP
         BigNumber k;
     }
 
-    public ubyte[] Nbytes()
+    enum IOEndian = IOENDIAN;
+
+    ubyte[] Nbytes()
     {
-        return N.toByteArray(Endian.bigEndian);
+        return N.toByteArray(IOEndian);
     }
 
-    public ubyte[] gbytes()
+    ubyte[] gbytes()
     {
-        return g.toByteArray(Endian.bigEndian);
+        return g.toByteArray(IOEndian);
     }
 
     /++
-    + Needs to be initialized with prime N and generator g
+    + Needs to be initialized with BIGENDIAN prime N and generator g
     +/
     this(in ubyte[] nbytes, in ubyte[] gbytes)
     {
@@ -53,6 +57,16 @@ final class SRP
     }
 
     /++
+    + Needs to be initialized with BIGENDIAN prime N and generator g and custom k
+    +/
+    this(in ubyte[] nbytes, in ubyte[] gbytes, in ubyte[] kbytes)
+    {
+        this.N = BigNumber(nbytes, Endian.bigEndian);
+        this.g = BigNumber(gbytes, Endian.bigEndian);
+        this.k = BigNumber(kbytes, Endian.bigEndian);
+    }
+
+    /++
     + Calculates data for clientside authentication
     + Returns ClientProof object
     +/
@@ -61,14 +75,14 @@ final class SRP
         auto u = calculate_u(Abytes, Bbytes);
         auto x = calculate_x(salt, username, password);
         auto v = calculate_v(x);
-        auto A = BigNumber(Abytes, Endian.bigEndian);
-        auto B = BigNumber(Bbytes, Endian.bigEndian);
-        auto a = BigNumber(abytes, Endian.bigEndian);
+        auto A = BigNumber(Abytes, IOEndian);
+        auto B = BigNumber(Bbytes, IOEndian);
+        auto a = BigNumber(abytes, IOEndian);
 
         // Secret = (B - (k * v)) ^ (a + (u * x)) % N
         BigNumber S = (B - (k * v)).modExp((a + (u * x)), N);
 
-        auto K = interleave(S.toByteArray(Endian.bigEndian));
+        auto K = interleave(S.toByteArray(IOEndian));
 
         auto M1 = calculateM1(username, salt, Abytes, Bbytes, K);
 
@@ -83,28 +97,28 @@ final class SRP
     +/
     immutable(ServerProof) serverChallange(in ubyte[] username, in ubyte[] salt, in ubyte[] vbytes, in ubyte[] Abytes, in ubyte[] bbytes) const
     {
-        auto v = BigNumber(vbytes, Endian.bigEndian);
+        auto v = BigNumber(vbytes, IOEndian);
 
-        auto b = BigNumber(bbytes, Endian.bigEndian);
+        auto b = BigNumber(bbytes, IOEndian);
 
         BigNumber B = calculateB(v, b);
 
-        auto Bbytes = B.toByteArray(Endian.bigEndian);
+        auto Bbytes = B.toByteArray(IOEndian);
 
-        auto A = BigNumber(Abytes, Endian.bigEndian);
+        auto A = BigNumber(Abytes, IOEndian);
         auto u = calculate_u(Abytes, Bbytes);
 
         // S = (A * v^u) ^ b % N
         BigNumber S = (A * v.modExp(u, N)).modExp(b, N);
 
-        auto K = interleave(S.toByteArray(Endian.bigEndian));
+        auto K = interleave(S.toByteArray(IOEndian));
 
         auto M1 = calculateM1(username, salt, Abytes, Bbytes, K);
 
         auto M2 = calculateM2(Abytes, M1, K);
 
         version(unittest)
-            return new immutable(ServerProof)(Bbytes, M1, M2, K, S.toByteArray(Endian.bigEndian));
+            return new immutable(ServerProof)(Bbytes, M1, M2, K, S.toByteArray(IOEndian));
         else
             return new immutable(ServerProof)(Bbytes, M1, M2, K);
     }
@@ -112,8 +126,8 @@ final class SRP
     /// A = g^a mod N - client's public key
     ubyte[] calculateA(in ubyte[] abytes) const
     {
-        BigNumber a = BigNumber(abytes, Endian.bigEndian);
-        return g.modExp(a, N).toByteArray(Endian.bigEndian);
+        BigNumber a = BigNumber(abytes, IOEndian);
+        return g.modExp(a, N).toByteArray(IOEndian);
     }
 
     // v = (g^x) % N
@@ -131,9 +145,9 @@ final class SRP
     // B = (k*v + g^b) % N
     BigNumber calculateB(in ubyte[] vbytes, in ubyte[] bbytes) const
     {
-        auto v = BigNumber(vbytes, Endian.bigEndian);
+        auto v = BigNumber(vbytes, IOEndian);
 
-        auto b = BigNumber(bbytes, Endian.bigEndian);
+        auto b = BigNumber(bbytes, IOEndian);
 
         return calculateB(v, b);
     }
@@ -153,7 +167,7 @@ protected:
         uBytes.put(pad(A));
         uBytes.put(pad(B));
 
-        return BigNumber(sha1Of(uBytes.data()), Endian.bigEndian);
+        return BigNumber(sha1Of(uBytes.data()), IOEndian);
     }
 
     // x = SHA1(salt | SHA1(username | ":" | password)
@@ -164,7 +178,7 @@ protected:
         ucp.put(':');
         ucp.put(password);
 
-        return BigNumber(sha1Of(salt ~ sha1Of(ucp.data())), Endian.bigEndian);
+        return BigNumber(sha1Of(salt ~ (sha1Of(ucp.data()))), IOEndian);
     }
 
     // M = SHA1(SHA1(N) XOR SHA1(g) | SHA1(username) | s | A | B | K)
@@ -172,7 +186,7 @@ protected:
     {
         auto mBytes = appender!(ubyte[])();
 
-        foreach(a ; zip(sha1Of(N.toByteArray(Endian.bigEndian))[], sha1Of(g.toByteArray(Endian.bigEndian))[]))
+        foreach(a ; zip(sha1Of(N.toByteArray(IOEndian))[], sha1Of(g.toByteArray(IOEndian))[]))
         {
             mBytes.put((a[0] ^ a[1]).to!ubyte);
         }
@@ -182,7 +196,7 @@ protected:
         mBytes.put(B);
         mBytes.put(K);
 
-        return sha1Of(mBytes.data());
+        return sha1Of(mBytes.data()).dup;
     }
 
     // M2 = SHA1(A | M1 | K)
@@ -193,36 +207,36 @@ protected:
         amk.put(M1);
         amk.put(K);
 
-        return sha1Of(amk.data());
+        return sha1Of(amk.data()).dup;
     }
+}
 
-    static ubyte[] interleave(in ubyte[] S)
-    {
-        // skip zeros and skip odd byte
-        ubyte[] T = S.dup;
-        while(T[0] == 0 || T.length %2 != 0)
-            T = T[1..$];
+private ubyte[] interleave(in ubyte[] S)
+{
+    // skip zeros and skip odd byte
+    ubyte[] T = S.dup;
+    while(T[0] == 0 || T.length %2 != 0)
+        T = T[1..$];
 
-        assert(T.length != 0);
+    assert(T.length != 0);
 
-        ubyte[] E = T.stride(2).array();
-        ubyte[] G = sha1Of(E);
+    ubyte[] E = T.stride(2).array();
+    ubyte[] G = sha1Of(E).dup;
 
-        ubyte[] F = T[1..$].stride(2).array();
-        ubyte[] H = sha1Of(F);
+    ubyte[] F = T[1..$].stride(2).array();
+    ubyte[] H = sha1Of(F).dup;
 
-        ubyte[] K = roundRobin(G, H).array();
-        return K;
-    }
+    ubyte[] K = roundRobin(G, H).array();
+    return K;
 }
 
 /++
 + Handles clientside challenge process
 + All data expected in bigEndian format
 +/
-class ClientChallenge
+class ClientChallenge(SRPTYPE)
 {
-    this(inout ubyte[] a, SRP srp) pure
+    this(inout ubyte[] a, SRPTYPE srp) pure
     {
         import std.conv;
     	this.a = a.to!(typeof(this.a));
@@ -239,7 +253,7 @@ class ClientChallenge
     }
 private:
     immutable ubyte[] a; // private key
-    SRP srp;
+    SRPTYPE srp;
 }
 
 immutable class ClientProof
@@ -264,11 +278,10 @@ private:
 
 /++
 + Handles serverside challenge process
-+ All data expected in bigEndian format
 +/
-class ServerChallenge
+class ServerChallenge(SRPTYPE)
 {
-    this(inout ubyte[] b, SRP srp) pure
+    this(inout ubyte[] b, SRPTYPE srp) pure
     {
         import std.conv;
     	this.b = b.to!(typeof(this.b));
@@ -277,7 +290,7 @@ class ServerChallenge
 
     ubyte[] calculateB(in ubyte[] userv)
     {
-        return srp.calculateB(userv, b).toByteArray(Endian.bigEndian);
+        return srp.calculateB(userv, b).toByteArray(SRPTYPE.IOEndian);
     }
     
 	immutable(ServerProof) challenge(in ubyte[] username, in ubyte[] usersalt, in ubyte[] userv, in ubyte[] A)
@@ -287,7 +300,7 @@ class ServerChallenge
 
 private:
     immutable ubyte[] b;
-    SRP srp;
+    SRPTYPE srp;
 }
 
 immutable class ServerProof
@@ -317,15 +330,12 @@ immutable class ServerProof
         }
     }
 
+    /// Returns *tuple(M2, K)
     auto authenticate(in ubyte[] M1)
     {
-        import std.stdio;
-        writeln(M1);
-        writeln(this.M1);
-        writeln(M2);
         if (M1 != this.M1)
             return null;
-        return new Tuple!(immutable ubyte[],immutable  ubyte[])(M2, K);
+        return new Tuple!(immutable ubyte[], "M2",immutable  ubyte[], "K")(M2, K);
     }
     ubyte[] B; // server public key
     ubyte[] M1;
@@ -375,17 +385,17 @@ unittest {
         3499B200 210DCC1F 10EB3394 3CD67FC8 8A2F39A4 BE5BEC4E C0A3212D
         C346D7E4 74B29EDE 8A469FFE CA686E5A";
 
-    auto srp = new SRP(N, [cast(ubyte)2]);
+    auto srp = new SRP!(Endian.bigEndian)(N, [cast(ubyte)2]);
 
     assert(srp.calculate_v(srp.calculate_x(s, username, password)).toByteArray(Endian.bigEndian) == v);
 
     assert(srp.calculate_u(A, B).toByteArray(Endian.bigEndian) == u);
 
-    auto client = new ClientChallenge(a, srp);
+    auto client = new ClientChallenge!(typeof(srp))(a, srp);
 
     assert(A == client.A);
 
-    auto server = new ServerChallenge(b, srp);
+    auto server = new ServerChallenge!(typeof(srp))(b, srp);
     assert(B == server.calculateB(v));
     auto serverProof = server.challenge(username, s, v, A);
     assert(B == serverProof.B);
@@ -394,4 +404,55 @@ unittest {
     auto clientProof = client.challenge(username, password, s, B);
 
     assert(clientProof.K == serverProof.K);
+}
+
+ubyte[] binary(string s)
+{
+    return cast(ubyte[]) s;
+}
+
+unittest {
+    import util.test;
+    import std.stdio;
+    mixin(test!("srp - server"));
+    
+    // test values are from raczman's gow project
+    auto N = cast(ubyte[])x"894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7";
+    auto username = cast(ubyte[])"ASD@ASD";
+    auto password = cast(ubyte[])"ASDASDASD";
+    auto xbytes = binary(x"C2A999E9C6552C657B289ED2EBBBF0A9509C3658").reverse;
+    auto s = binary(x"CBF0A403F68FF107053EDA81A68C4B296433232E31F3835A076ED58C00604051").reverse;
+    auto b = binary(x"6B5B4C4C7024745DF05296CA0648222BA9EF8761").reverse;
+    auto v = binary(x"42DE78BFD0357EC0D38F854A0DA98B783B99A15CD9A460521EA18B4B7BF67F27").reverse;
+    auto A = binary(x"395FC20352ADCE8F3DBD083FD95F088043AD65B172652042229309CBC4372997").reverse;
+    auto B = binary(x"48780A8DD9FA107C0E271ADFA8D8FD57F56620FA144656F1B9132C6CE4F8A1E7").reverse;
+    auto K = binary(x"8F30C8A1B329EEC53D0667A6BC28E715105E075B04FDBE8D79148658E7F2659D4C027E080F8B31F5").reverse;
+    auto secret = binary(x"83BE386A7B61F323CD426AC4FD82370CD35E7CB52CEBB734051F2BE0A61B30C4").reverse;
+    auto u = binary(x"7EA95BF30E4586558E2589EC7A50BDC258580E9E").reverse;
+    auto M1 = binary(x"83907B1F5F4C8D83327C5B46AA5A21AF9E383A41").reverse;
+    auto M2 = binary(x"CD0E397721CA5881C1649037A89C11FBF0A05DF3").reverse;
+
+    auto srp = new SRP!(Endian.littleEndian)(N, [cast(ubyte)7], [cast(ubyte)3]);
+
+    auto x = srp.calculate_x(s, username, password);
+
+    import util.struct_printer;
+    writeln(x.toHexString);
+
+    assert(x.toByteArray(Endian.littleEndian) == xbytes);
+    
+    assert(srp.calculate_v(x).toByteArray(Endian.littleEndian) == v);
+
+    auto server = new ServerChallenge!(typeof(srp))(b, srp);
+    assert(B == server.calculateB(v));
+
+    assert(srp.calculate_u(A, B).toByteArray(Endian.littleEndian) == u);
+
+    auto serverProof = server.challenge(username, s, v, A);
+    assert(B == serverProof.B);
+    assert(secret == serverProof.S);
+    assert(K == serverProof.K);
+    auto authInfo = serverProof.authenticate(M1);
+    assert(authInfo !is null);
+    assert(authInfo.M2 == M2);
 }

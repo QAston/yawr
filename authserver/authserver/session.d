@@ -4,6 +4,7 @@
 module authserver.session;
 
 import std.conv;
+import std.system;
 
 import wowdefs.wow_versions;
 
@@ -31,11 +32,11 @@ final class Session
 {
     TCPConnection connectionStream;
     ProtocolVersion protocolVersion;
-    ServerChallenge challenge;
+    ServerChallenge!(typeof(srp)) challenge;
     AuthInfo* authInfo;
 
     immutable static void function()[(Opcode.max + 1) * 2] packetHandlers;
-    static SRP srp;
+    static SRP!(Endian.littleEndian) srp;
 
     shared static this()
     {
@@ -52,9 +53,7 @@ final class Session
                 mixin("setHandler!(Opcode."~ opcodeString~", ProtocolVersion."~ver.to!string~");");
             }
         }
-        import util.crypto.big_num;
-        //srp = new SRP(cast(ubyte[])x"894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7", [cast(ubyte)7]);
-        srp = new SRP(cast(ubyte[])x"894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7", [cast(ubyte)7]);
+        srp = new SRP!(Endian.littleEndian)(cast(ubyte[])x"894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7", [cast(ubyte)7], [cast(ubyte)3]);
     }
 
 
@@ -171,16 +170,16 @@ final class Session
         result.front.toStruct(*authInfo);
 
         assert(challenge is null);
-        challenge = new ServerChallenge(cast(ubyte[])x"E487CB59 D31AC550 471E81F0 0F6928E0 1DDA08E9 74A004F4 9E61F5D1 05284D20",srp);
+        challenge = new ServerChallenge!(typeof(srp))(cast(ubyte[])x"E487CB59 D31AC550 471E81F0 0F6928E0 1DDA08E9 74A004F4 9E61F5D1 05284D20",srp);
         response.result = AuthResult.WOW_SUCCESS;
         auto secInf = typeof(response).SecurityInfo();
-        auto bbytes = challenge.calculateB(BigNumber(authInfo.v).toByteArray(Endian.bigEndian)).reverse;
+        auto bbytes = challenge.calculateB(BigNumber(authInfo.v).toByteArray(Endian.littleEndian));
         bbytes.length = 32;
         secInf.B []= bbytes[];
-        secInf.g = srp.gbytes().reverse;
-        secInf.N = srp.Nbytes().reverse;
+        secInf.g = srp.gbytes();
+        secInf.N = srp.Nbytes();
         secInf.s []= BigNumber(authInfo.s).toByteArray(Endian.littleEndian)[];
-        //secInf.unkRand []= util.crypto.big_num.random(16*8).toByteArray(Endian.littleEndian)[];
+        secInf.unkRand []= util.crypto.big_num.random(16*8).toByteArray(Endian.littleEndian)[];
 
         response.info = secInf;
         
@@ -192,12 +191,13 @@ final class Session
         import std.algorithm;
         import util.crypto.big_num;
         import std.system;
+        logDiagnostic(logId~"Received opcode: %s", OPCODE.to!string);
         auto packet = readPacket!(OPCODE, VER);
         auto response = Packet!(Opcode.AUTH_LOGON_PROOF, Dir.s2c, VER)();
 
-        auto proof = challenge.challenge(cast(ubyte[])authInfo.username, BigNumber(authInfo.s).toByteArray(Endian.bigEndian), BigNumber(authInfo.v).toByteArray(Endian.bigEndian), packet.A.reverse);
+        auto proof = challenge.challenge(cast(ubyte[])authInfo.username, BigNumber(authInfo.s).toByteArray(Endian.littleEndian), BigNumber(authInfo.v).toByteArray(Endian.littleEndian), packet.A);
 
-        auto authResult = proof.authenticate(packet.M1.reverse);
+        auto authResult = proof.authenticate(packet.M1);
         if (authResult is null)
         {
             response.error = AuthResult.WOW_FAIL_UNKNOWN_ACCOUNT;
@@ -209,11 +209,12 @@ final class Session
 
         response.error = AuthResult.WOW_SUCCESS;
         auto respProof = typeof(response).Proof();
-        respProof.M2 []= (*authResult)[0].dup.reverse[];
+        respProof.M2 []= (*authResult).M2[];
         static if (VER == ProtocolVersion.POST_BC)
         {
             respProof.flags = AccountFlags.PRO_PASS;
         }
+        response.proof = respProof;
 
         writePacket(&response);
     }
