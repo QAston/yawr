@@ -34,11 +34,25 @@ struct AuthInfo
     string s;
 }
 
+struct RealmInfo
+{
+    string name;
+    string address;
+    ushort port;
+    ubyte icon;
+    ubyte flag;
+    ubyte timezone;
+    ubyte allowedSecurityLevel;
+    float population;
+    uint gamebuild;
+}
+
 /++
 + Returns a comma separated list of all fields from a struct of given type T
 +/
 string formatSqlColumnList(T)()
 {
+    // make sure it's only a simple struct
     static assert(__traits(allMembers, T).length == T.tupleof.length);
     import std.array;
     auto app = appender!(string);

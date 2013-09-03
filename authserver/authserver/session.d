@@ -34,6 +34,7 @@ final class Session
     ProtocolVersion protocolVersion;
     ServerChallenge!(typeof(srp)) challenge;
     AuthInfo* authInfo;
+    WowVersion clientBuild;
 
     immutable static void function()[(Opcode.max + 1) * 2] packetHandlers;
     static SRP!(Endian.littleEndian) srp;
@@ -113,6 +114,7 @@ final class Session
         auto packetStream = new PacketStream!false(null);
         packetStream.val(*packet);
         connectionStream.swrite!ubyte(OPCODE);
+        logDiagnostic("%s", packetStream.getData.toHex);
         connectionStream.write(packetStream.getData);
         logDebug(logId~fieldsToString(*packet));
     }
@@ -149,10 +151,11 @@ final class Session
         logDebug(logId~"Received opcode: %s \n", packet.fieldsToString());
 
         protocolVersion = packet.build.major >= MajorWowVersion.TBC ? ProtocolVersion.POST_BC : ProtocolVersion.PRE_BC;
+        
         auto response = Packet!(Opcode.AUTH_LOGON_CHALLENGE, Dir.s2c, VER)();
 
         auto cmd = getDbCmd();
-        cmd.sql = "SELECT id, username, sha_pass_hash, sessionkey, v, s FROM account WHERE username=?";
+        cmd.sql = "SELECT " ~ formatSqlColumnList!AuthInfo() ~ " FROM account WHERE username=?";
         cmd.prepare();
         cmd.bindParameterTuple(packet.accountName);
         auto result = cmd.execPreparedResult();
@@ -188,7 +191,6 @@ final class Session
 
     void receivedPacket(Opcode OPCODE : Opcode.AUTH_LOGON_PROOF, ProtocolVersion VER)()
     {
-        import std.algorithm;
         import util.crypto.big_num;
         import std.system;
         logDiagnostic(logId~"Received opcode: %s", OPCODE.to!string);
@@ -216,6 +218,48 @@ final class Session
         }
         response.proof = respProof;
 
+        writePacket(&response);
+    }
+
+    void receivedPacket(Opcode OPCODE : Opcode.REALM_LIST, ProtocolVersion VER)()
+    {
+        import util.typecons;
+        logDiagnostic(logId~"Received opcode: %s", OPCODE.to!string);
+        auto packet = readPacket!(OPCODE, VER);
+        auto response = Packet!(Opcode.REALM_LIST, Dir.s2c, VER)();
+
+        auto cmd = getDbCmd();
+        cmd.sql = "SELECT " ~ formatSqlColumnList!(authserver.db.RealmInfo)() ~ " FROM realmlist";
+        auto result = cmd.execSQLResult();
+        response.realms = new authprotocol.packet_data.RealmInfo!(VER)[result.length];
+        size_t i = 0;
+        foreach (row ; result)
+        {
+            auto realm = authserver.db.RealmInfo();
+            row.toStruct(realm);
+            
+            auto realmData = authprotocol.packet_data.RealmInfo!(VER)(cast(RealmFlags)realm.flag, realm.name.to!(char[]), (realm.address.to!string ~ ":" ~realm.port.to!string).to!(char[]), realm.population, 0, realm.timezone, realm.icon);
+            static if (VER == ProtocolVersion.POST_BC)
+            {
+                auto pi = getPatchInfo(cast(WowVersion)realm.gamebuild);
+                realmData.build = BuildInfo(pi.major, pi.minor, pi.bugfix, cast(WowVersion)realm.gamebuild);
+                realmData.unk = 0x2C;
+            }
+            else
+                realmData.unk = 0x0;
+            response.realms[i++] = realmData;
+        }
+
+        if (VER == ProtocolVersion.POST_BC)
+        {
+            response.unk1 = 0x10;
+            response.unk2 = 0x0;
+        }
+        else
+        {
+            response.unk1 = 0x0;
+            response.unk2 = 0x2;
+        }
         writePacket(&response);
     }
     

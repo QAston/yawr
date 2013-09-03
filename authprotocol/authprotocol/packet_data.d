@@ -332,7 +332,10 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.REALM_LIST && PACKET.dir == Di
     {
         p.valBlockSize!(ushort, false)({
             p.val(unk);
-            p.valCount!uint(realms);
+            static if (PACKET.ver == ProtocolVersion.PRE_BC)
+                p.valCount!uint(realms);
+            else
+                p.valCount!ushort(realms);
             p.valArray(realms);
             p.val(unk1);
             p.val(unk2);
@@ -341,7 +344,7 @@ struct PacketData(PACKET) if (PACKET.op == Opcode.REALM_LIST && PACKET.dir == Di
 }
 
 unittest {
-    auto realmInfo = RealmInfo!(ProtocolVersion.POST_BC)();
+    auto realmInfo = RealmInfo!(ProtocolVersion.POST_BC)(RealmFlags.REALM_FLAG_SPECIFYBUILD);
     realmInfo.name = cast(char[])"cool_realm";
     realmInfo.address = cast(char[])"127.0.0.1";
     auto pi = getPatchInfo(WowVersion.V4_3_4_15595);
@@ -359,24 +362,30 @@ struct RealmInfo(ProtocolVersion ver)
     float populationLevel = 0; // avoid NAN
     ubyte charsOnRealm;
     ubyte timezone;
+    ubyte type;
     ubyte unk;
 
     static if(ver == ProtocolVersion.POST_BC)
+    {
         BuildInfo build;
+        ubyte locked;
+    }
 
     void stream(PACKET_STREAM)(PACKET_STREAM p)
     {
+        p.val(type);
+        static if(ver == ProtocolVersion.POST_BC)
+            p.val(locked);
         p.val(flags);
-        p.valCount!uint(name);
-        p.valArray(name);
-        p.valCount!uint(address);
-        p.valArray(address);
+        p.val!(asCString)(name);
+        p.val!(asCString)(address);
         p.val(populationLevel);
         p.val(charsOnRealm);
         p.val(timezone);
         p.val(unk);
         static if(ver == ProtocolVersion.POST_BC)
-            p.val(build);
+            if (flags & RealmFlags.REALM_FLAG_SPECIFYBUILD)
+                p.val(build);
     }
 }
 
