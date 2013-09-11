@@ -224,20 +224,18 @@ final class Session
     void receivedPacket(Opcode OPCODE : Opcode.REALM_LIST, ProtocolVersion VER)()
     {
         import util.typecons;
+        import std.algorithm;
         logDiagnostic(logId~"Received opcode: %s", OPCODE.to!string);
         auto packet = readPacket!(OPCODE, VER);
         auto response = Packet!(Opcode.REALM_LIST, Dir.s2c, VER)();
 
         auto cmd = getDbCmd();
         cmd.sql = "SELECT " ~ formatSqlColumnList!(authserver.db.RealmInfo)() ~ " FROM realmlist";
-        auto result = cmd.execSQLResult();
+        auto result = cmd.execSQLResult().resultRange!(authserver.db.RealmInfo)();
         response.realms = new authprotocol.packet_data.RealmInfo!(VER)[result.length];
         size_t i = 0;
-        foreach (row ; result)
-        {
-            auto realm = authserver.db.RealmInfo();
-            row.toStruct(realm);
-            
+        foreach (realm ; result)
+        {   
             auto realmData = authprotocol.packet_data.RealmInfo!(VER)(cast(RealmFlags)realm.flag, realm.name.to!(char[]), (realm.address.to!string ~ ":" ~realm.port.to!string).to!(char[]), realm.population, 0, realm.timezone, realm.icon);
             static if (VER == ProtocolVersion.POST_BC)
             {
