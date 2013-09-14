@@ -8,7 +8,7 @@ import std.typecons;
 import std.traits;
 
 import util.stream;
-import util.bit;
+import util.binary;
 import util.typecons;
 
 import util.bit_memory_stream;

@@ -7,7 +7,7 @@ module authprotocol.packet_data;
 import util.protocol.packet_stream;
 import util.protocol.direction;
 import util.protocol.packet_data;
-import util.bit;
+import util.binary;
 import util.typecons;
 
 import wowdefs.wow_versions;

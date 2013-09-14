@@ -1,4 +1,4 @@
-module util.bit;
+module util.binary;
 
 import std.bitmanip;
 import std.traits;
@@ -99,4 +99,20 @@ unittest {
     assert(asByteArray(t1)[0] == 0x5);
     assert(asByteArray(t1)[1] == 0x23);
     assert(asByteArray(t1)[2] == 0x14);
+}
+
+/++
++ Casts a hex literal x"" from string to ubyte[] - prevents runtime utf validation
++ Should not be used on non-literal strings!
++/
+ubyte[] bin(string hexLiteral)()
+{
+    return cast(ubyte[])hexLiteral;
+}
+
+///
+unittest {
+    static assert(is (typeof(x"90") == string));
+    auto a = bin!x"90";
+    static assert(is (typeof(a) == ubyte[]));
 }

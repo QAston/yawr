@@ -117,22 +117,25 @@ struct ClientAddonsList(bool valDeflatedSize) {
     }
 }
 
-struct PacketData(PACKET) if(PACKET.op == (Opcode.SMSG_MOVE_SET_RUN_SPEED) && PACKET.dir==Direction.s2c)
+static if (wowVersion >= WowVersion.V4_3_4_15595)
 {
-    uint unk;
-    float speed;
-    ulong guid;
-    void stream(PACKET_STREAM)(PACKET_STREAM p)
+    struct PacketData(PACKET) if(PACKET.op == (Opcode.SMSG_MOVE_SET_RUN_SPEED))
     {
-        p.valPackMarkByteSeq(guid, 6, 1, 5, 2, 7, 0, 3, 4);
-        p.valPackByteSeq(guid, 5,3,1,4);
-        p.val(unk);
-        p.val(speed);
-        p.valPackByteSeq(guid, 6,0,7,2);
+        uint unk;
+        float speed;
+        ulong guid;
+        void stream(PACKET_STREAM)(PACKET_STREAM p)
+        {
+            p.valPackMarkByteSeq(guid, 6, 1, 5, 2, 7, 0, 3, 4);
+            p.valPackByteSeq(guid, 5,3,1,4);
+            p.val(unk);
+            p.val(speed);
+            p.valPackByteSeq(guid, 6,0,7,2);
+        }
     }
-}
 
-unittest {
-    testPacketData(x"5E 05 E2 10 00 00 00 00 00 E0 40 D9 07 57", Packet!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c)(16, 7, 432345564300370904));
-    testPacketData(Packet!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c)(16, 7, 432345564300370904));
+    unittest {
+        testPacketData(x"5E 05 E2 10 00 00 00 00 00 E0 40 D9 07 57", Packet!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c)(16, 7, 432345564300370904));
+        testPacketData(Packet!(Opcode.SMSG_MOVE_SET_RUN_SPEED, Direction.s2c)(16, 7, 432345564300370904));
+    }
 }

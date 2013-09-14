@@ -389,7 +389,7 @@ unittest {
     assert(t3.isPositive);
     assert(!t3.isNegative);
     ubyte ut6 = 70;
-    import util.bit;
+    import util.binary;
     auto bt6 = asByteArray(ut6);
     assert(t6.toByteArray(Endian.littleEndian) == bt6);
     import std.conv;

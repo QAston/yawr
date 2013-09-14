@@ -11,11 +11,7 @@ immutable ushort listenPort = 3724;
 immutable string logFile;
 immutable uint logFileLevel;
 immutable string authDbConnectionString;
-
-private shared void loadOpt(T)(string optName, immutable ref T loadTo, string description)
-{
-    getOption(optName, cast(T*)&loadTo, description);
-}
+immutable bool canStart;
 
 shared static this()
 {
@@ -28,13 +24,7 @@ shared static this()
     loadOpt("logFileLevel", logFileLevel, "Level of messages to log to logFile");
 
     loadOpt("authDbConnectionString", authDbConnectionString, "Mysql connection string in format: host=localhost;user=user;pwd=password;db=auth");
-}
 
-/+
- + Returns true if program has valid settings and can continue execution
- +/
-bool read()
-{
     string[] args;
-    return finalizeCommandLineOptions(&args);
+    canStart = finalizeCommandLineOptions(&args);
 }

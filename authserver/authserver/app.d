@@ -20,9 +20,11 @@ shared static this()
 
 int main()
 {
+    if (!authserver.conf.canStart)
+        return 1;
     logInfo("authserver - Part of the Yet Another WowD Rewrite project");
-    if (!authserver.conf.read)
-        return 0;
+    scope(exit)
+        logInfo("authserver - shutting down");
 
     int ret = 0;
     try
@@ -44,6 +46,6 @@ int main()
         logError(t.to!string);
         return 1;
     }
-    logInfo("authserver - shutting down");
+    
     return ret;
 }
