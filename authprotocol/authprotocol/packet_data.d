@@ -12,7 +12,6 @@ import util.typecons;
 
 import wowdefs.wow_versions;
 
-import authprotocol.opcode;
 import authprotocol.defines;
 
 enum ProtocolVersion

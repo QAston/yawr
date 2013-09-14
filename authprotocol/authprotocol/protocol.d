@@ -1,2 +1,0 @@
-module authserver.protocol.protocol;
-

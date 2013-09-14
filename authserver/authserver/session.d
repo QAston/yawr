@@ -18,7 +18,6 @@ import util.crypto.srp6;
 
 import authprotocol.packet_data;
 import authprotocol.defines;
-import authprotocol.opcode;
 
 import authserver.db;
 
