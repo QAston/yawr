@@ -53,9 +53,13 @@ final class Session
                 mixin("setHandler!(Opcode."~ opcodeString~", ProtocolVersion."~ver.to!string~");");
             }
         }
-        srp = new SRP!(Endian.littleEndian)(cast(ubyte[])x"894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7", [cast(ubyte)7], [cast(ubyte)3]);
     }
 
+    static this()
+    {
+        import util.binary : bin;
+        srp = new SRP!(Endian.littleEndian)(bin!x"894B645E89E1535BBDAD5B8B290650530801B18EBFBF5E8FAB3C82872A3E9BB7", [cast(ubyte)7], [cast(ubyte)3]);
+    }
 
     this(TCPConnection connectionStream)
     {
@@ -153,12 +157,8 @@ final class Session
         
         auto response = Packet!(Opcode.AUTH_LOGON_CHALLENGE, Dir.s2c, VER)();
 
-        auto cmd = getDbCmd();
-        cmd.sql = "SELECT " ~ formatSqlColumnList!AuthInfo() ~ " FROM account WHERE username=?";
-        cmd.prepare();
-        cmd.bindParameterTuple(packet.accountName);
-        auto result = cmd.execPreparedResult();
-        if (result.empty())
+        auto result = db.selectResult!(AuthInfo)(" FROM account WHERE username=?", packet.accountName);
+        if (result.isNull())
         {
             response.result = AuthResult.WOW_FAIL_UNKNOWN_ACCOUNT;
             writePacket(&response);
@@ -166,10 +166,7 @@ final class Session
             return;
         }
 
-        assert(result.length == 1);
-        assert(authInfo is null);
-        authInfo = new AuthInfo();
-        result.front.toStruct(*authInfo);
+        auto authInfo = result.get();
 
         assert(challenge is null);
         challenge = new ServerChallenge!(typeof(srp))(cast(ubyte[])x"E487CB59 D31AC550 471E81F0 0F6928E0 1DDA08E9 74A004F4 9E61F5D1 05284D20",srp);
@@ -228,9 +225,7 @@ final class Session
         auto packet = readPacket!(OPCODE, VER);
         auto response = Packet!(Opcode.REALM_LIST, Dir.s2c, VER)();
 
-        auto cmd = getDbCmd();
-        cmd.sql = "SELECT " ~ formatSqlColumnList!(authserver.db.RealmInfo)() ~ " FROM realmlist";
-        auto result = cmd.execSQLResult().resultRange!(authserver.db.RealmInfo)();
+        auto result = db.selectResults!(authserver.db.RealmInfo)(" FROM realmlist");
         response.realms = new authprotocol.packet_data.RealmInfo!(VER)[result.length];
         size_t i = 0;
         foreach (realm ; result)

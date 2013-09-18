@@ -5,6 +5,8 @@ import util.traits;
 import std.traits;
 import std.conv;
 
+import util.typecons;
+
 /+
  + Generates a string representation of a given struct
  + Prints member names and uses more whitespace than builtin toString
@@ -58,7 +60,7 @@ string fieldsToString(T)(in T t, in string alignment="")
             str.put(element.fieldsToString(alignment ~ "\t"));
         }
     }
-    else 
+    else
     {
         import std.regex;
         enum ctr = ctRegex!(`[^\.]*?$`);

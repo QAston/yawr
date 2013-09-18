@@ -36,8 +36,6 @@ int main()
             logDiagnostic("log set for file %s", authserver.conf.logFile);
         }
 
-        authserver.db.init();
-
         logInfo("authserver started");
         ret = runEventLoop();
     }
