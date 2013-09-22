@@ -242,12 +242,12 @@ class ClientChallenge(SRPTYPE)
     	this.a = a.to!(typeof(this.a));
         this.srp = srp;
     }
-    const(ubyte[]) A()
+    const(ubyte[]) A() const
     {
         return srp.calculateA(a);
     }
     // calc using data from server
-    immutable(ClientProof) challenge(in ubyte[] username, in ubyte[] password, in ubyte[] salt, in ubyte[] B)
+    immutable(ClientProof) challenge(in ubyte[] username, in ubyte[] password, in ubyte[] salt, in ubyte[] B) const
     {
         return srp.clientChallange(username, password, salt, B, a, A);
     }
@@ -288,12 +288,12 @@ class ServerChallenge(SRPTYPE)
         this.srp = srp;
     }
 
-    ubyte[] calculateB(in ubyte[] userv)
+    ubyte[] calculateB(in ubyte[] userv) const
     {
         return srp.calculateB(userv, b).toByteArray(SRPTYPE.IOEndian);
     }
     
-	immutable(ServerProof) challenge(in ubyte[] username, in ubyte[] usersalt, in ubyte[] userv, in ubyte[] A)
+	immutable(ServerProof) challenge(in ubyte[] username, in ubyte[] usersalt, in ubyte[] userv, in ubyte[] A) const
 	{
 		return srp.serverChallange(username, usersalt, userv, A, b);
 	}

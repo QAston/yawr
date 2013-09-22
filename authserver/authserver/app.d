@@ -7,16 +7,6 @@ import util.log;
 
 import authserver.session;
 static import authserver.conf;
-import authserver.db;
-
-
-shared static this()
-{
-    if (authserver.conf.listenInterface == "")
-	    listenTCP(authserver.conf.listenPort, (conn){ (new Session(conn)).run(); });
-    else
-	    listenTCP(authserver.conf.listenPort, (conn){ (new Session(conn)).run(); }, authserver.conf.listenInterface);
-}
 
 int main()
 {
