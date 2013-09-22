@@ -1,3 +1,10 @@
+/++
++ This module provides StateTrans utility which allows you to control when mutation of a passed variable happens
++ Guidelines:
++   pass by const if you don't want mutation
++   pass by mutuable if you want mutation immediately
++   pass by StateTrans if you want mutation but you want to control when it happens
++/
 module util.state_trans.d;
 
 import std.array;
@@ -5,7 +12,6 @@ import std.traits;
 
 /++
 + Holds a const reference to a class object and transitions to apply to the state of the object later
-+ Useful for preventing "spooky action at a distance" common in OO when dealing with non-hierarchical program strucutre
 +/
 final class StateTrans(TYPE) if (is(TYPE == class))
 {
