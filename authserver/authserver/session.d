@@ -32,9 +32,9 @@ import vibe.d;
 shared static this()
 {
     if (authserver.conf.listenInterface == "")
-	    listenTCP(authserver.conf.listenPort, (conn){ run(conn); });
+        listenTCP(authserver.conf.listenPort, (conn){ run(conn); });
     else
-	    listenTCP(authserver.conf.listenPort, (conn){ run(conn); }, authserver.conf.listenInterface);
+        listenTCP(authserver.conf.listenPort, (conn){ run(conn); }, authserver.conf.listenInterface);
 }
 
 /++

@@ -5,7 +5,7 @@
 +   pass by mutuable if you want mutation immediately
 +   pass by StateTrans if you want mutation but you want to control when it happens
 +/
-module util.state_trans.d;
+module util.state_trans;
 
 import std.array;
 import std.traits;
@@ -15,28 +15,28 @@ import std.traits;
 +/
 final class StateTrans(TYPE) if (is(TYPE == class))
 {
-	this(TYPE state)
-	{
-		this.state = state;
-	}
+    this(TYPE state)
+    {
+        this.state = state;
+    }
 
     /++
     + Returns const ref to the object held by this reference
     +/
-	@property const(TYPE) get()
-	{
-		return this.state;
-	}
-	
+    @property const(TYPE) get()
+    {
+        return this.state;
+    }
+    
     /++
     + Queues a transformation on a object held by StateTrans
     + All queued transformations will be executed in sequence later applyTransforms is called
     + A transformation should check if the object is in a desired state before applying changes
     +/
-	void queue(void delegate(TYPE) transform)
-	{
+    void queue(void delegate(TYPE) transform)
+    {
         transformations.put(transform);
-	}
+    }
 
     /++
     + Applies all transforms queued using queue method
@@ -58,8 +58,8 @@ final class StateTrans(TYPE) if (is(TYPE == class))
     }
     alias get this;
 private:
-	const TYPE state;
-	Appender!(void delegate(TYPE)[]) transformations;
+    const TYPE state;
+    Appender!(void delegate(TYPE)[]) transformations;
 }
 
 /++
