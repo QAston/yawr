@@ -38,7 +38,7 @@ interface InputBitStream : InputStream {
 class MemoryOutputBitStream : OutputBitStream
 {
     MemoryOutputStream stream;
-	this(Allocator alloc = defaultAllocator())
+	this(shared(Allocator) alloc = defaultAllocator())
 	{
 		stream = new MemoryOutputStream(alloc);
 	}
@@ -115,10 +115,10 @@ mixin template BitStreamOutput(alias data)
     + Writes bytes to stream
     + Aligned to single byte in memory - if writeBit was used call will skip remaining part of current byte and write next ones
     +/
-    void write(in ubyte[] bytes, bool do_flush = true)
+    void write(in ubyte[] bytes)
     {
         flushBits();
-        data.write(bytes, do_flush);
+        data.write(bytes);
     }
 
     /+
@@ -140,7 +140,7 @@ mixin template BitStreamOutput(alias data)
 
     void flush() {data.flush();}
     void finalize() {data.finalize();}
-    void write(InputStream stream, ulong nbytes = 0, bool do_flush = true) { writeDefault(stream, nbytes, do_flush); }
+    void write(InputStream stream, ulong nbytes = 0) { writeDefault(stream, nbytes); }
 }
 
 unittest {
