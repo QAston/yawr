@@ -19,10 +19,11 @@ import util.state_trans;
 
 import util.crypto.srp6;
 
-import authprotocol.packet_data;
 import authprotocol.defines;
+import authprotocol.packet_data;
 
 import authserver.db;
+static import authserver.packet_handler;
 
 import vibe.d;
 
@@ -241,6 +242,10 @@ void receivedPacket(Opcode OPCODE, ProtocolVersion VER)(Session session)
     throw new SessionException("Unexpected opcode: "~ OPCODE);
 }
 
+/// TODO broken because of DMD bug
+//alias authserver.packet_handler.receivedPacket receivedPacket;
+//alias authserver.session.Callback.receivedPacket receivedPacket;
+
 void receivedPacket(Opcode OPCODE : Opcode.AUTH_LOGON_CHALLENGE, ProtocolVersion VER)(Session session)
 {
     import std.algorithm;
@@ -248,7 +253,7 @@ void receivedPacket(Opcode OPCODE : Opcode.AUTH_LOGON_CHALLENGE, ProtocolVersion
     import std.system;
 
     auto packet = session.stream.read!(OPCODE, VER);
-    
+
     session.protocolVersion = packet.build.major >= MajorWowVersion.TBC ? ProtocolVersion.POST_BC : ProtocolVersion.PRE_BC;
 
     auto response = Packet!(Opcode.AUTH_LOGON_CHALLENGE, Dir.s2c, VER)();
