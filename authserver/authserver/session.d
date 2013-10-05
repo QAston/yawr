@@ -170,7 +170,7 @@ final class Session
     /// checks if connection to client is alive
     bool isEnded() const
     {
-        return stream.connected;
+        return !stream.connected;
     }
 
     /// Ends the session - disconnects from client
