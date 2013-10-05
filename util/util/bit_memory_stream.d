@@ -38,10 +38,10 @@ interface InputBitStream : InputStream {
 class MemoryOutputBitStream : OutputBitStream
 {
     MemoryOutputStream stream;
-	this(shared(Allocator) alloc = defaultAllocator())
-	{
-		stream = new MemoryOutputStream(alloc);
-	}
+    this(shared(Allocator) alloc = defaultAllocator())
+    {
+        stream = new MemoryOutputStream(alloc);
+    }
 
     ubyte[] getData()
     {
