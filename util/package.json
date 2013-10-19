@@ -8,6 +8,7 @@
 	"dependencies": {
 		"vibe-d": "~master",
         "mysql-native": "~master",
+        "dmocks-revived": {"version": "~master", "path": "../../dmocks"},
 	},
     "configurations": [
         {

@@ -1,30 +1,56 @@
-/+
- + Module responsible for fetching authserver-specific config options from cmd line and vibe.conf file
- +/
+/++
++ Module responsible for fetching authserver-specific config options from cmd line and vibe.conf file
++/
 module authserver.conf;
 
 import util.conf;
-import util.log;
 
-immutable string listenInterface;
-immutable ushort listenPort = 3724;
-immutable string logFile;
-immutable uint logFileLevel;
-immutable string authDbConnectionString;
-immutable bool canStart;
-
-shared static this()
+/++
++ Returns newly created config object
++ must be called once on the beginning of program
++/
+auto createConfig()
 {
-    loadOpt("listenInterface", listenInterface, "Ip address of the interface on which server will listen for connections");
+    auto c = new Config;
+    loadOpt("listenInterface", c.listenInterface, "Ip address of the interface on which server will listen for connections");
 
-    loadOpt("listenPort", listenPort, "Port number which server will listen for connections");
-        
-    loadOpt("logFile", logFile, "Path to log file");
+    loadOpt("listenPort", c.listenPort, "Port number which server will listen for connections");
 
-    loadOpt("logFileLevel", logFileLevel, "Level of messages to log to logFile");
+    loadOpt("logFile", c.logFile, "Path to log file");
 
-    loadOpt("authDbConnectionString", authDbConnectionString, "Mysql connection string in format: host=localhost;user=user;pwd=password;db=auth");
+    loadOpt("logFileLevel", c.logFileLevel, "Level of messages to log to logFile");
+
+    loadOpt("authDbConnectionString", c.authDbConnectionString, "Mysql connection string in format: host=localhost;user=user;pwd=password;db=auth");
 
     string[] args;
-    canStart = finalizeCommandLineOptions(&args);
+    if (finalizeCommandLineOptions(&args))
+        return c;
+    return null;
+}
+
+immutable class Config
+{
+    immutable string listenInterface;
+    immutable ushort listenPort;
+    immutable string logFile;
+    immutable uint logFileLevel;
+    immutable string authDbConnectionString;
+    pure this()
+    {
+        listenPort = 3724;
+        listenInterface = "";
+        logFile = "";
+        logFileLevel = 0;
+        authDbConnectionString = "";
+    }
+}
+
+private __gshared Config config;
+
+Config function() getConfig = ()=>config;
+
+bool initConfig()
+{
+    config = createConfig();
+    return config !is null;
 }

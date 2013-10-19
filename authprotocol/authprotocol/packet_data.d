@@ -34,6 +34,11 @@ template Packet(Opcode OPCODE, Direction DIRECTION, ProtocolVersion VER)
     alias PacketData!(PacketInfo!(OPCODE, DIRECTION, VER)) Packet;
 }
 
+template PacketResponse(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR, VER)),Opcode OP,Direction DIR, ProtocolVersion VER)
+{
+    alias PacketData!(PacketInfo!(OP, OppositeDirection!(DIR), VER)) PacketResponse;
+}
+
 /+
 + Checks that PacketData can be written to stream and reread from it and have same value
 + Watch out for NAN values in PacketData (default float)- tests for those will fail

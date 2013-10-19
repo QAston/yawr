@@ -31,12 +31,12 @@ final class SRP(Endian IOENDIAN)
 
     enum IOEndian = IOENDIAN;
 
-    ubyte[] Nbytes()
+    ubyte[] Nbytes() const
     {
         return N.toByteArray(IOEndian);
     }
 
-    ubyte[] gbytes()
+    ubyte[] gbytes() const
     {
         return g.toByteArray(IOEndian);
     }
@@ -239,7 +239,7 @@ class ClientChallenge(SRPTYPE)
     this(inout ubyte[] a, SRPTYPE srp) pure
     {
         import std.conv;
-    	this.a = a.to!(typeof(this.a));
+        this.a = a.to!(typeof(this.a));
         this.srp = srp;
     }
     const(ubyte[]) A() const
@@ -281,10 +281,10 @@ private:
 +/
 class ServerChallenge(SRPTYPE)
 {
-    this(inout ubyte[] b, SRPTYPE srp) pure
+    this(inout ubyte[] b, const SRPTYPE srp) pure
     {
         import std.conv;
-    	this.b = b.to!(typeof(this.b));
+        this.b = b.to!(typeof(this.b));
         this.srp = srp;
     }
 
@@ -293,14 +293,14 @@ class ServerChallenge(SRPTYPE)
         return srp.calculateB(userv, b).toByteArray(SRPTYPE.IOEndian);
     }
     
-	immutable(ServerProof) challenge(in ubyte[] username, in ubyte[] usersalt, in ubyte[] userv, in ubyte[] A) const
-	{
-		return srp.serverChallange(username, usersalt, userv, A, b);
-	}
+    immutable(ServerProof) challenge(in ubyte[] username, in ubyte[] usersalt, in ubyte[] userv, in ubyte[] A) const
+    {
+        return srp.serverChallange(username, usersalt, userv, A, b);
+    }
 
 private:
     immutable ubyte[] b;
-    SRPTYPE srp;
+    const SRPTYPE srp;
 }
 
 immutable class ServerProof

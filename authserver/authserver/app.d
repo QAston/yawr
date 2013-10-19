@@ -1,32 +1,36 @@
+/++
++ Application entry point module.
++ Initializes the entire system.
++/
 module authserver.app;
 
 import std.conv;
 
-import vibe.d : listenTCP, runEventLoop;
+import vibe.d : runEventLoop;
 import util.log;
 
 import authserver.session;
-static import authserver.conf;
+import authserver.conf;
+import authserver.database.dao;
+import authserver.log;
 
 int main()
 {
-    if (!authserver.conf.canStart)
-        return 1;
-    logInfo("authserver - Part of the Yet Another WowD Rewrite project");
-    scope(exit)
-        logInfo("authserver - shutting down");
-
     int ret = 0;
     try
     {
-        // setup file logging if desired
-        if (authserver.conf.logFile != "")
-        {
-            setLogFile(authserver.conf.logFile, authserver.conf.logFileLevel.to!LogLevel);
-            logDiagnostic("log set for file %s", authserver.conf.logFile);
-        }
+        if (!initConfig())
+            return 1;
+        logInfo("authserver - Part of the Yet Another WowD Rewrite project");
+        scope(exit)
+            logInfo("authserver - shutting down");
+        initLogging();
+        initDao();
+        initSessionListener();
+        alias authserver.log logger;
 
-        logInfo("authserver started");
+        logger.logInfo("authserver started");
+
         ret = runEventLoop();
     }
     catch (Throwable t)
