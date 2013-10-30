@@ -26,10 +26,10 @@ private template isOutStream(T) {
  +/
 T sread(T, INSTREAM, Endian endianness = Endian.littleEndian)(INSTREAM s)
 {
-	ubyte[T.sizeof] array;
-	ubyte[] buffer = array[];
-	s.read(buffer);
-	return buffer.read!(T, endianness)();
+    ubyte[T.sizeof] array;
+    ubyte[] buffer = array[];
+    s.read(buffer);
+    return buffer.read!(T, endianness)();
 }
 
 static assert (bool.sizeof == 1);
@@ -50,10 +50,10 @@ ubyte[] sreadBytes(INSTREAM)(INSTREAM stream, size_t size) if (isInStream!(INSTR
  +/
 void swrite(T, OUTSTREAM, Endian endianness = Endian.littleEndian)(OUTSTREAM s, T value)
 {
-	ubyte[T.sizeof] array;
-	ubyte[] buffer = array[];
-	buffer.write!(T, endianness)(value, 0);
-	s.write(buffer);
+    ubyte[T.sizeof] array;
+    ubyte[] buffer = array[];
+    buffer.write!(T, endianness)(value, 0);
+    s.write(buffer);
 }
 
 /+
@@ -90,7 +90,7 @@ private {
     {
         ubyte[] data = null;
         bool begin = true;
-	    void read(ubyte[] dst)
+        void read(ubyte[] dst)
         {
             assert(data !is null && begin);
             foreach(i, ref el; dst)

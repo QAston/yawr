@@ -5,11 +5,11 @@
 module authserver.database.dao;
 
 import authserver.conf;
-import authserver.database.db;
+import util.mysql;
 
 // import all dao classes here
-public import authserver.database.realm;
-public import authserver.database.auth;
+public import server_commons.database.realm;
+public import server_commons.database.auth;
 
 /++
 + A database service locator class
@@ -38,11 +38,10 @@ class Dao
 
 /++
 + Initialize Dao class singleton
-+ Returns true on success
 +/
 void initDao()
 {
-    SqlDB database = createDatabase(getConfig());
+    SqlDB database = new SqlDB(getConfig().authDbConnectionString);
     dao = new Dao(database);
 }
 

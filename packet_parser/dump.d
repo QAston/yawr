@@ -14,8 +14,8 @@ import std.range;
 struct PacketDump {
     ubyte[] data;
     uint opcode;
-	util.protocol.direction.Direction direction;
-	SysTime dateTime;
+    util.protocol.direction.Direction direction;
+    SysTime dateTime;
     uint sessionId;
 }
 

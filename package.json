@@ -1,0 +1,178 @@
+{
+    "name": "yawr",
+    "description": "",
+    "dependencies": {
+         "yawr:authserver": "~master",
+         "yawr:util": "~master",
+         "yawr:wowdefs": "~master",
+         "yawr:wowprotocol": "~master",
+         "yawr:worldserver": "~master",
+         "yawr:packetparser": "~master",
+         "yawr:packetparser_app": "~master",
+        },
+    "type": "none",
+    "subPackages": [
+        {
+            "name": "authserver",
+            "description": "Authserver - app responsible for client authentication - part of Yet Another Wowd Rewrite project",
+            "sourcePaths": ["authserver", "authprotocol", "util", "server_commons"],
+            "sourceFiles": ["wowdefs/wow_versions.d"],
+            "importPaths": ["."],
+            "targetType": "executable",
+            "versions": ["VibeCustomMain"],
+            "dependencies": {
+                "vibe-d": "~master",
+                "mysql-native": "~master",
+            },
+            "configurations": [
+                {
+                    "name": "app",
+                    "targetType": "executable",
+                },
+            ]
+        },
+        {
+            "name": "util",
+            "description": "Library containing various utilities - part of Yet Another Wowd Rewrite project",
+            "targetType": "library",
+            "sourcePaths": ["util"],
+            "importPaths": ["."],
+            "versions": ["VibeCustomMain"],
+            "dependencies": {
+                "vibe-d": "~master",
+                "mysql-native": "~master",
+                "dmocks-revived": {"version": "~master", "path": "../dmocks"},
+            },
+            "configurations": [
+                {
+                    "name": "library",
+                },
+                {
+                    "name": "tests",
+                    "targetType": "executable",
+                    "sourceFiles": ["common/tests_main.d"],
+                },
+            ],
+        },
+        {
+            "name": "wowdefs",
+            "description": "Library containing structures/enums common to all wow related tooling - part of Yet Another Wowd Rewrite project",
+            "targetType": "library",
+            "sourcePaths": ["wowdefs"],
+            "importPaths": ["."],
+            "dependencies": {
+                "yawr:util": "~master",
+            },
+            "configurations": [
+                {
+                    "name": "library",
+                },
+                {
+                    "name": "tests15595",
+                    "targetType": "executable",
+                    "versions": ["WowVersionV4_3_4_15595"],
+                    "sourceFiles": ["../common/tests_main.d"],
+                },
+            ]
+        },
+        {
+            "name": "packetparser_app",
+            "description": "PacketParser app - translates given packet dumps into human readable output - part of Yet Another Wowd Rewrite project",
+            "sourcePaths": ["packet_parser"],
+            "configurations": [
+                {
+                    "name": "app",
+                    "targetType": "executable",
+                    "sourceFiles": ["wowdefs/wow_versions.d"],
+                    "importPaths": ["."],
+                    "dependencies": {
+                        "yawr:util": "~master",
+                    },
+                    "versions": ["PacketParserDLL"],
+                },
+                {
+                    "name": "wow15595",
+                    "targetType": "executable",
+                    "dependencies": {
+                        "yawr:packetparser": "~master",
+                    },
+                    "versions": ["WowVersionV4_3_4_15595"],
+                },
+            ]
+        },
+        {
+            "name": "packetparser",
+            "description": "Library handling wow-version specific tasks of PacketParser app - part of Yet Another Wowd Rewrite project",
+            "sourcePaths": ["packet_parser"],
+            "dependencies": {
+                "yawr:wowprotocol": "~master",
+            },
+            "configurations": [
+                {
+                    "name": "library",
+                    "targetType": "staticLibrary",
+                    "importPaths": ["."],
+                },
+                {
+                    "name": "wow15595",
+                    "targetType": "dynamicLibrary",
+                    "dflags": ["-shared"],
+                    "versions" : ["WowVersionV4_3_4_15595", "PacketParserDLL"],
+                },
+                {
+                    "name": "wow12340",
+                    "targetType": "dynamicLibrary",
+                    "dflags": ["-shared"],
+                    "versions" : ["WowVersionV3_3_5a_12340", "PacketParserDLL"],
+                },
+                {
+                    "name": "tests15595",
+                    "targetType": "executable",
+                    "versions": ["WowVersionV4_3_4_15595"],
+                    "sourceFiles": ["common/tests_main.d"],
+                },
+            ],
+        },
+        {
+            "name": "wowprotocol",
+            "description": "Library defining wow client-server communication protocol - part of Yet Another Wowd Rewrite project",
+            "targetType": "library",
+            "sourcePaths": ["wowprotocol"],
+            "importPaths": ["."],
+            "dependencies": {
+                "yawr:wowdefs": "~master",
+            },
+            "configurations": [
+                {
+                    "name": "library",
+                },
+                {
+                    "name": "tests15595",
+                    "targetType": "executable",
+                    "versions": ["WowVersionV4_3_4_15595"],
+                    "sourceFiles": ["common/tests_main.d"],
+                },
+            ]
+        },
+        {
+            "name": "worldserver",
+            "description": "Worldserver - app responsible for client authentication - part of Yet Another Wowd Rewrite project",
+            "sourcePaths": ["worldserver", "server_commons"],
+            "targetType": "executable",
+            "dependencies": {
+                "yawr:wowprotocol": "~master",
+            },
+            "configurations": [
+                {
+                    "name": "app",
+                    "targetType": "executable",
+                },
+                {
+                    "name": "wow15595",
+                    "targetType": "executable",
+                    "versions": ["WowVersionV4_3_4_15595"],
+                },
+            ]
+        },
+    ]
+}

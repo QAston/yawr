@@ -1,6 +1,6 @@
-module authserver.database.auth;
+module server_commons.database.auth;
 
-import authserver.database.db;
+import util.mysql;
 import std.conv;
 
 class AuthDao

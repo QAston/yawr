@@ -1,6 +1,6 @@
-module authserver.database.realm;
+module server_commons.database.realm;
 
-import authserver.database.db;
+import util.mysql;
 
 class RealmDao
 {
