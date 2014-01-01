@@ -518,7 +518,7 @@ class BlockSize(bool INPUT : false, SIZE_TYPE, bool INCLUDE_SIZE)
  +/
 struct Opt(T)
 {
-    this(T value)
+    pure this()(inout T value) inout  // proper signature
     {
         optStruct = value;
     }

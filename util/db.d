@@ -3,7 +3,7 @@ module util.db;
 /++
 + Returns a comma separated list of all fields from a struct of given type T
 +/
-string formatSqlColumnList(T)() pure
+string formatSqlColumnList(T)()
 {
     // make sure it's only a simple struct
     static assert(__traits(allMembers, T).length == T.tupleof.length);

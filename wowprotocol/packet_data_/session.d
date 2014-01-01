@@ -6,7 +6,7 @@ import util.protocol.packet_stream;
 import util.protocol.direction;
 import wowprotocol.packet_data;
 
-struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE) {
+struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE && wowVersion == WowVersion.V4_3_4_15595) {
     uint[8] key;
     uint serverSeed;
     bool unk;
@@ -24,13 +24,20 @@ struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE) {
         p.val(serverSeed);
         p.val(unk);
     }
+
+    unittest {
+        testPacketData(Packet!(Opcode.SMSG_AUTH_CHALLENGE, Direction.c2s)());
+    }
 }
 
-unittest {
-    testPacketData(Packet!(Opcode.SMSG_AUTH_CHALLENGE, Direction.c2s)());
+struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE && wowVersion == WowVersion.V4_3_4_15595) {
+    uint[8] key;
+    uint shuffleCount;
+    uint serverSeed;
+    bool unk;
 }
 
-struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION) {
+struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION  && wowVersion == WowVersion.V4_3_4_15595) {
     byte[20] sha;
     WowVersion build;
     char[] accountName;
@@ -77,14 +84,14 @@ struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION) {
 
         p.valArray(accountName);
     }
-}
 
-unittest {
-    import std.conv;
-    auto t1 = Packet!(Opcode.CMSG_AUTH_SESSION, Direction.c2s)();
-    t1.accountName = "asd".to!(char[]);
-    t1.clientAddonsList.addons = [Addon("addon1", true, 0, 0), Addon("addon2", false, 0, 0)];
-    testPacketData(t1);
+    unittest {
+        import std.conv;
+        auto t1 = Packet!(Opcode.CMSG_AUTH_SESSION, Direction.c2s)();
+        t1.accountName = "asd".to!(char[]);
+        t1.clientAddonsList.addons = [Addon("addon1", true, 0, 0), Addon("addon2", false, 0, 0)];
+        testPacketData(t1);
+    }
 }
 
 struct Addon {

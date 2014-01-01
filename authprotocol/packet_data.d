@@ -66,7 +66,7 @@ void testPacketData(DATA_TYPE : PacketData!(PacketInfo!(OP, DIR, VER)),Opcode OP
     testPacketData(cast(ubyte[])inputBinary, expectedResult);
 }
 
-struct PacketData(PACKET) 
+struct PacketData(PACKET)
     if (PACKET.dir == Direction.c2s && (PACKET.op == Opcode.AUTH_LOGON_CHALLENGE || PACKET.op == Opcode.AUTH_RECONNECT_CHALLENGE))
 {
     ubyte unk; // for AUTH_LOGON_CHALLENGE - 6 in PseuWow

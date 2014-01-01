@@ -79,12 +79,12 @@
             "name": "packetparser_app",
             "description": "PacketParser app - translates given packet dumps into human readable output - part of Yet Another Wowd Rewrite project",
             "sourcePaths": ["packet_parser"],
+            "importPaths": ["."],
             "configurations": [
                 {
                     "name": "app",
                     "targetType": "executable",
                     "sourceFiles": ["wowdefs/wow_versions.d"],
-                    "importPaths": ["."],
                     "dependencies": {
                         "yawr:util": "~master",
                     },
@@ -104,6 +104,7 @@
             "name": "packetparser",
             "description": "Library handling wow-version specific tasks of PacketParser app - part of Yet Another Wowd Rewrite project",
             "sourcePaths": ["packet_parser"],
+            "importPaths": ["."],
             "dependencies": {
                 "yawr:wowprotocol": "~master",
             },
@@ -159,6 +160,7 @@
             "description": "Worldserver - app responsible for client authentication - part of Yet Another Wowd Rewrite project",
             "sourcePaths": ["worldserver", "server_commons"],
             "targetType": "executable",
+            "importPaths": ["."],
             "dependencies": {
                 "yawr:wowprotocol": "~master",
             },
