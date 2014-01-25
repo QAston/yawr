@@ -14,7 +14,7 @@ import util.struct_printer;
 
 import util.crypto.hmac_digest;
 import util.crypto.arc4;
-import util.bin;
+import util.binary;
 
 import std.conv;
 
@@ -38,14 +38,14 @@ public:
         ubyte[] encryptHash = keyedDigest!HMAC(bin!r"CC98AE04E897EACA12DDC09342915357", K);
         ubyte[] decryptHash = keyedDigest!HMAC(bin!r"C2B3723CC6AED9B5343C53EE2F4367CE", K);
 
-        inputDecrypt.Init(decryptHash);
-        outputDecrypt.Init(encryptHash);
+        inputDecrypt = ARC4(decryptHash);
+        outputDecrypt = ARC4(encryptHash);
 
         // Drop first 1024 bytes, as WoW uses ARC4-drop1024.
         ubyte[1024] syncBuf;
 
-        inputDecrypt.update(1024, syncBuf);
-        outputDecrypt.update(1024, syncBuf);
+        inputDecrypt.update(syncBuf);
+        outputDecrypt.update(syncBuf);
     }
 
     /++
@@ -53,7 +53,21 @@ public:
     +/
     Opcode read()
     {
-        return .readHeader(this.connectionStream);
+        ubyte[] headerBytes = stream.sreadBytes(6);
+        ubyte[] decodedHeader = inputDecrypt.update(headerBytes);
+
+        ushort size = decodedHeader[0..2].read!(ushort, Endian.BigEndian);
+        uint opcode = decodedHeader[2..6].read!(uint, Endian.LittleEndian);
+
+
+        if ((size < 4) || (size > 10240))
+        {
+            throw new Exception();
+        }
+
+        size -= 4;
+
+        return cast(Opcode)opcode;
     }
 
     /++
@@ -100,43 +114,6 @@ public:
     {
         return "ConnectionStream: "~connectionStream.peerAddress.to!string;
     }
-}
-
-struct ClientPacketHeader
-{
-    Opcode opcode;
-    uint size;
-}
-
-
-ClientPacketHeader readHeader(STREAM)(STREAM stream)
-{
-    ubyte[] headerBytes = stream.sreadBytes(4);
-
-    m_Crypt.DecryptRecv ((uint8*)m_Header.rd_ptr(), sizeof(ClientPktHeader));
-
-    ClientPktHeader& header = *((ClientPktHeader*)m_Header.rd_ptr());
-
-    if ((header.size < 4) || (header.size > 10240) || (header.cmd > 10240))
-    {
-        ///error
-    }
-
-    header.size -= 4;
-
-    ACE_NEW_RETURN(m_RecvWPct, WorldPacket ((uint16)header.cmd, header.size), -1);
-
-    if (header.size > 0)
-    {
-        m_RecvWPct->resize(header.size);
-        m_RecvPct.base ((char*) m_RecvWPct->contents(), m_RecvWPct->size());
-    }
-    else
-    {
-        assert(m_RecvPct.space() == 0);
-    }
-    
-    return cast(Opcode)stream.sread!ubyte();
 }
 
 auto read(Opcode OPCODE, Dir DIR, STREAM)(STREAM packetStream)

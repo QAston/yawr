@@ -18,6 +18,7 @@ class WorldObject
     // map (id + instance)
     // position
     // object fields
+    /+
 
     void update()
     {
@@ -30,7 +31,7 @@ class WorldObject
 
     void accept()
     {
-    }
+    }+/
 }
 
 // this struct helps encapsulation - it's used for storing mutuable obj data and for access by visitors
