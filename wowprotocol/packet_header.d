@@ -1,44 +1,50 @@
 module wowprotocol.packet_header;
+import util.binary;
 
-immutable struct ServerHeader
+immutable(ClientHeader) readClientHeader(INPUT)(INPUT range)
 {
-    uint size;
-    uint opcode;
-};
+    ubyte[] sizeBytes = range[0..2];
+    ubyte[] opcodeBytes = range[2..6];
 
-/+
-/**
-* size is the length of the payload _plus_ the length of the opcode
-*/
-this(uint size, uint cmd) pure
-{
-    this.size = size;
-    uint8 headerIndex=0;
-    if (isLargePacket())
+    ushort size = std.bitmanip.read!(ushort, Endian.bigEndian)(sizeBytes);
+    uint opcode = std.bitmanip.read!(uint, Endian.littleEndian)(opcodeBytes);
+
+    if ((size < 4) || (size > 10240))
     {
-        header[headerIndex++] = 0x80 | (0xFF & (size >> 16));
+        throw new Exception("");
     }
-    header[headerIndex++] = 0xFF & (size >> 8);
-    header[headerIndex++] = 0xFF & size;
-
-    header[headerIndex++] = 0xFF & cmd;
-    header[headerIndex++] = 0xFF & (cmd >> 8);
+    return ClientHeader(size-4, cast(ushort)opcode);
 }
-
-ubyte getHeaderLength() const
-{
-    // cmd = 2 bytes, size= 2||3bytes
-    return 2 + (isLargePacket() ? 3 : 2);
-}
-
-bool isLargePacket() const
-{
-    return size > 0x7FFF;
-}+/
-
 
 immutable struct ClientHeader
 {
-    ushort size;
-    uint cmd;
-};
+    uint dataSize;
+    ushort opcode;
+    @property size()
+    {
+        return dataSize + 4;
+    }
+}
+
+void writeServerHeader(OUTPUT)(OUTPUT range, immutable(ServerHeader) header)
+{
+    if (header.size > 0x7FFF)
+    {
+        range.put(cast(ubyte)(0x80 | (0xFF & (header.size >> 16))));
+    }
+    range.put(cast(ubyte)(0xFF & (header.size >> 8)));
+    range.put(cast(ubyte)(0xFF & header.size));
+
+    range.put(cast(ubyte)(0xFF & header.opcode));
+    range.put(cast(ubyte)(0xFF & (header.opcode >> 8)));
+}
+
+immutable struct ServerHeader
+{
+    uint dataSize;
+    ushort opcode;
+    @property uint size()
+    {
+        return dataSize + 2;
+    }
+}

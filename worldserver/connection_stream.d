@@ -3,11 +3,13 @@ module worldserver.connection_stream;
 import wowprotocol.opcode;
 import wowprotocol.packet_data;
 import wowprotocol.session;
+import wowprotocol.packet_header;
 
 import util.stream;
 import util.protocol.direction : Dir = Direction;
 
 import vibe.d : TCPConnection;
+import vibe.stream.memory;
 import util.protocol.packet_stream;
 import util.bit_memory_stream;
 import util.struct_printer;
@@ -15,8 +17,38 @@ import util.struct_printer;
 import util.crypto.hmac_digest;
 import util.crypto.arc4;
 import util.binary;
+import util.crypto.big_num;
+import worldserver.log;
 
 import std.conv;
+
+import std.array;
+
+
+void doHandshakes(TCPConnection connectionStream, uint seed)
+{
+    auto packet = PacketData!(PacketInfo!(Opcode.SMSG_AUTH_CHALLENGE, Dir.s2c))();
+    packet.shuffleCount = 1; // 1...31
+    packet.serverSeed = seed;
+
+    auto number = random(4*8*8);
+    packet.newSeeds = cast(uint[])number.toByteArray(Endian.bigEndian); // new encryption seed
+
+    auto packetStream = new PacketStream!false(null);
+    packetStream.val(packet);
+    auto stream  = new MemoryOutputBitStream();
+    stream.writeServerHeader(ServerHeader(packetStream.getData.length, Opcode.SMSG_AUTH_CHALLENGE));
+
+    stream.write(packetStream.getData);
+
+    connectionStream.write(stream.getData());
+
+
+    import std.stdio;
+    ubyte[] headerBytes = connectionStream.sreadBytes(6);
+    ClientHeader header = readClientHeader(headerBytes);
+    logDiagnostic("Got packet: %s", (cast(Opcode)header.opcode).opcodeToString);
+}
 
 
 /++
@@ -53,21 +85,11 @@ public:
     +/
     Opcode read()
     {
-        ubyte[] headerBytes = stream.sreadBytes(6);
-        ubyte[] decodedHeader = inputDecrypt.update(headerBytes);
+        ubyte[] encodedHeaderBytes = connectionStream.sreadBytes(6);
+        ubyte[] decodedHeader = inputDecrypt.update(encodedHeaderBytes);
+        ClientHeader header = readClientHeader(decodedHeader);
 
-        ushort size = decodedHeader[0..2].read!(ushort, Endian.BigEndian);
-        uint opcode = decodedHeader[2..6].read!(uint, Endian.LittleEndian);
-
-
-        if ((size < 4) || (size > 10240))
-        {
-            throw new Exception();
-        }
-
-        size -= 4;
-
-        return cast(Opcode)opcode;
+        return cast(Opcode)header.opcode;
     }
 
     /++

@@ -179,7 +179,7 @@
                 {
                     "name": "wow12340",
                     "targetType": "executable",
-                    "versions": ["WowVersionV3_3_5_12340"],
+                    "versions": ["WowVersionV3_3_5a_12340"],
                 },
             ]
         },

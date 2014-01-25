@@ -14,6 +14,7 @@ import worldserver.database.dao;
 import worldserver.log;
 
 import worldserver.ipc;
+import worldserver.session;
 
 int main()
 {
@@ -31,6 +32,7 @@ int main()
         initLogging();
         initDao();
         registerStartup();
+        initSessionListener();
         alias worldserver.log logger;
 
         logger.logInfo("worldserver started");

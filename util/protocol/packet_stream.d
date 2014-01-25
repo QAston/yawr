@@ -24,6 +24,7 @@ import vibe.stream.operations;
  + Significantly reduces duplication, makes testing easier and encourages reuse of packet handlers
  + val* functions here mimic the way blizzard is sending packet data, some of them are made specially for patterns found in those
  +/
+/// TODO: use stream.put instead of stream.write for better performance
 final class PacketStream(bool input)
 {
     enum isInput = input;

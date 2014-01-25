@@ -40,7 +40,10 @@ void initSessionListener()
 +/
 void run(TCPConnection connectionStream)
 {
-    auto stream = ConnectionStream(connectionStream);
+    import std.random;
+    
+    doHandshakes(connectionStream, unpredictableSeed());
+    auto stream = ConnectionStream(connectionStream, []);
     logDiagnostic("Got connection:"~stream.logId());
     auto session = new Session(stream);
     scope(exit)

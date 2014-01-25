@@ -7,7 +7,7 @@ module wowprotocol.packet_data;
 public import wowprotocol.packet_data_.session;
 
 import util.protocol.packet_stream;
-import wowprotocol.opcode;
+public import wowprotocol.opcode;
 import wowprotocol.session;
 import util.traits;
 import util.protocol.direction;

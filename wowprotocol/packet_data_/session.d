@@ -26,15 +26,55 @@ struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE && wowVersi
     }
 
     unittest {
-        testPacketData(Packet!(Opcode.SMSG_AUTH_CHALLENGE, Direction.c2s)());
+        testPacketData(Packet!(Opcode.SMSG_AUTH_CHALLENGE, Direction.s2c)());
     }
 }
 
-struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE && wowVersion == WowVersion.V4_3_4_15595) {
-    uint[8] key;
-    uint shuffleCount;
+struct PacketData(PACKET) if(PACKET.op == Opcode.SMSG_AUTH_CHALLENGE && wowVersion == WowVersion.V3_3_5a_12340) {
+    uint[8] newSeeds;
     uint serverSeed;
-    bool unk;
+    uint shuffleCount;
+
+    void stream(PACKET_STREAM)(PACKET_STREAM p)
+    {
+        p.val(shuffleCount);
+        p.val(serverSeed);
+        p.valArray(newSeeds);
+    }
+
+    unittest {
+        testPacketData(Packet!(Opcode.SMSG_AUTH_CHALLENGE, Direction.s2c)());
+    }
+}
+
+struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION  && wowVersion == WowVersion.V3_3_5a_12340) {
+    byte[20] sha;
+    uint clientBuild;
+    char[] accountName;
+    uint clientSeed;
+    uint unk2, unk3, unk5, unk6, unk7;
+    ulong unk4;
+    ClientAddonsList!(false) clientAddonsList;
+    
+    void stream(PACKET_STREAM)(PACKET_STREAM p)
+    {
+        p.val(clientBuild);
+        p.val(unk2);
+        p.val(account);
+        p.val(unk3);
+        p.val(clientSeed);
+        p.val(clientBuild);
+        p.val(unk5);
+        p.val(unk6);
+        p.val(unk7);
+        p.val(unk4);
+        p.valArray(sha);
+        p.val(clientAddonsList);
+    }
+
+    unittest {
+        testPacketData(Packet!(Opcode.SMSG_AUTH_CHALLENGE, Direction.c2s)());
+    }
 }
 
 struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION  && wowVersion == WowVersion.V4_3_4_15595) {

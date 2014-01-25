@@ -1,6 +1,7 @@
 module util.binary;
 
 public import std.bitmanip;
+public import std.system;
 import std.traits;
 
 /+
