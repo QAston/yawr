@@ -34,9 +34,23 @@ final class SqlDB
     /++
     + Retuns sql command object for communications to database
     +/
-    SqlCommand command()
+    SqlCommand createCommand()
     {
         return new SqlCommand(this);
+    }
+
+    /++
+    + executes an sql statement with given params
+    +/
+    bool exec(PARAMS...)(string statement, PARAMS params)
+    {
+        auto cmd = createCommand();
+        cmd.sql = statement;
+        cmd.prepare();
+        static if (PARAMS.length > 0)
+            cmd.cmd.bindParameterTuple!(PARAMS)(params);
+        ulong rows;
+        return cmd.execPrepared(rows);
     }
 
     /++
@@ -49,7 +63,7 @@ final class SqlDB
     +/
     auto selectResults(RESULT_TYPE, PARAMS...)(string fromWhere, PARAMS params)
     {
-        auto cmd = command();
+        auto cmd = createCommand();
         cmd.sql = "SELECT " ~ formatSqlColumnList!(RESULT_TYPE)() ~ fromWhere;
         cmd.prepare();
         static if (PARAMS.length > 0)

@@ -2,6 +2,9 @@ module server_commons.database.realm;
 
 import util.mysql;
 
+import authprotocol.defines;
+import util.traits;
+
 class RealmDao
 {
     private SqlDB database;
@@ -14,6 +17,16 @@ class RealmDao
     auto getAll()
     {
         return database.selectResults!(RealmDto)(" FROM realmlist");
+    }
+
+    void removeRealmFlag(uint realmId, RealmFlags flag)
+    {
+        database.exec("UPDATE realmlist SET flag = (flag & ~?) WHERE id = ?", flag.toEnumBase(), realmId);
+    }
+
+    void addRealmFlag(uint realmId, RealmFlags flag)
+    {
+        database.exec("UPDATE realmlist SET flag = flag | ? WHERE id = ?", flag.toEnumBase(), realmId);
     }
 }
 

@@ -30,6 +30,14 @@ template EnumBase(T)
     }
 }
 
+/++
++ casts enum type to it's base type
++/
+auto toEnumBase(T)(T t)
+{
+    return cast(EnumBase!T)t;
+}
+
 unittest {
     enum Test {
         T1 = 1,
@@ -178,4 +186,16 @@ unittest {
     static assert(RepresentationMembersSize!SuperAlignedTestTypeAlignedAligned == 7);
     static assert(MembersSize!SuperAlignedTestTypeAlignedAligned == 7);
     static assert(MembersSize!TestType == RepresentationMembersSize!TestType);
+}
+
+/++
++ evaluates to TypeTuple of attributes of a symbol
++/
+template Attributes (alias symbol)
+{
+    static if (!__traits(compiles, __traits(getAttributes, symbol)))
+        alias TypeTuple!() Attributes;
+
+    else
+        alias TypeTuple!(__traits(getAttributes, symbol)) Attributes;
 }

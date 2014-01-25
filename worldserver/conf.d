@@ -35,13 +35,15 @@ immutable class Config
     immutable string logFile;
     immutable uint logFileLevel;
     immutable string authDbConnectionString;
+    immutable int realmId;
     pure this()
     {
-        listenPort = 3724;
+        listenPort = 8085;
         listenInterface = "";
         logFile = "";
         logFileLevel = 0;
         authDbConnectionString = "";
+        realmId = 1;
     }
 }
 

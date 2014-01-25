@@ -13,6 +13,8 @@ import worldserver.conf;
 import worldserver.database.dao;
 import worldserver.log;
 
+import worldserver.ipc;
+
 int main()
 {
     int ret = 0;
@@ -22,9 +24,13 @@ int main()
             return 1;
         logInfo("worldserver - Part of the Yet Another WowD Rewrite project");
         scope(exit)
+        {
             logInfo("worldserver - shutting down");
+            registerShutdown();
+        }
         initLogging();
         initDao();
+        registerStartup();
         alias worldserver.log logger;
 
         logger.logInfo("worldserver started");
