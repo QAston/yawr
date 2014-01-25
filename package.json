@@ -18,6 +18,7 @@
             "sourcePaths": ["authserver", "authprotocol", "util", "server_commons"],
             "sourceFiles": ["wowdefs/wow_versions.d"],
             "importPaths": ["."],
+            "mainSourceFile":"authserver/app.d",
             "targetType": "executable",
             "versions": ["VibeCustomMain"],
             "dependencies": {
@@ -159,6 +160,7 @@
             "name": "worldserver",
             "description": "Worldserver - app responsible for client authentication - part of Yet Another Wowd Rewrite project",
             "sourcePaths": ["worldserver", "server_commons"],
+            "mainSourceFile":"worldserver/app.d",
             "targetType": "executable",
             "importPaths": ["."],
             "dependencies": {
@@ -173,6 +175,11 @@
                     "name": "wow15595",
                     "targetType": "executable",
                     "versions": ["WowVersionV4_3_4_15595"],
+                },
+                {
+                    "name": "wow12340",
+                    "targetType": "executable",
+                    "versions": ["WowVersionV3_3_5_12340"],
                 },
             ]
         },
