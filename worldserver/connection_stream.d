@@ -21,33 +21,41 @@ import util.crypto.big_num;
 import worldserver.log;
 
 import std.conv;
-
 import std.array;
 
 
 void doHandshakes(TCPConnection connectionStream, uint seed)
 {
-    auto packet = PacketData!(PacketInfo!(Opcode.SMSG_AUTH_CHALLENGE, Dir.s2c))();
-    packet.shuffleCount = 1; // 1...31
-    packet.serverSeed = seed;
+    {
+        auto packet = Packet!(Opcode.SMSG_AUTH_CHALLENGE, Dir.s2c)();
+        packet.shuffleCount = 1; // 1...31
+        packet.serverSeed = seed;
 
-    auto number = random(4*8*8);
-    packet.newSeeds = cast(uint[])number.toByteArray(Endian.bigEndian); // new encryption seed
+        auto number = random(4*8*8);
+        packet.newSeeds = cast(uint[])number.toByteArray(Endian.bigEndian); // new encryption seed
 
-    auto packetStream = new PacketStream!false(null);
-    packetStream.val(packet);
-    auto stream  = new MemoryOutputBitStream();
-    stream.writeServerHeader(ServerHeader(packetStream.getData.length, Opcode.SMSG_AUTH_CHALLENGE));
+        auto packetStream = new PacketStream!false(null);
+        packetStream.val(packet);
+        auto stream  = new MemoryOutputBitStream();
+        stream.writeServerHeader(ServerHeader(packetStream.data.length, Opcode.SMSG_AUTH_CHALLENGE));
 
-    stream.write(packetStream.getData);
+        stream.write(packetStream.data);
 
-    connectionStream.write(stream.getData());
+        connectionStream.write(stream.data());
+    }
 
+    {
+        ubyte[] headerBytes = connectionStream.sreadBytes(6);
+        ClientHeader header = readClientHeader(headerBytes);
 
-    import std.stdio;
-    ubyte[] headerBytes = connectionStream.sreadBytes(6);
-    ClientHeader header = readClientHeader(headerBytes);
-    logDiagnostic("Got packet: %s", (cast(Opcode)header.opcode).opcodeToString);
+        logDiagnostic("Got packet: %s", (cast(Opcode)header.opcode).opcodeToString);
+
+        auto readBuffer = new ubyte[header.dataSize];
+        connectionStream.read(readBuffer);
+        auto inputStream = new PacketStream!true(readBuffer, null);
+        auto packet = Packet!(Opcode.CMSG_AUTH_SESSION, Dir.c2s)();
+        inputStream.val(packet);
+    }
 }
 
 
@@ -117,7 +125,7 @@ public:
         auto packetStream = new PacketStream!false(this.session.compress);
         .write(packet, connectionStream, packetStream);
 
-        logDiagnostic(logId ~ "%s", packetStream.getData.toHex);
+        logDiagnostic(logId ~ "%s", packetStream.data.toHex);
     }
 
     /// returns true if connection is still active
@@ -136,23 +144,4 @@ public:
     {
         return "ConnectionStream: "~connectionStream.peerAddress.to!string;
     }
-}
-
-auto read(Opcode OPCODE, Dir DIR, STREAM)(STREAM packetStream)
-{
-    auto packet = Packet!(OPCODE, DIR, VER)();
-    packetStream.val(packet);
-    return packet;
-}
-
-void write(PACKET: PacketData!(PacketInfo!(OPCODE, DIR)), STREAM, PACKET_STREAM, Opcode OPCODE, Dir DIR)(PACKET* packet, STREAM stream, PACKET_STREAM packetStream)
-in
-{
-    assert(packet !is null);
-}
-body
-{
-    packetStream.val(*packet);
-    stream.swrite!ubyte(OPCODE);
-    stream.write(packetStream.getData);
 }

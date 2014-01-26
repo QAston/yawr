@@ -37,13 +37,13 @@ interface InputBitStream : InputStream {
 
 class MemoryOutputBitStream : OutputBitStream
 {
-    MemoryOutputStream stream;
+    private MemoryOutputStream stream;
     this(shared(Allocator) alloc = defaultAllocator())
     {
         stream = new MemoryOutputStream(alloc);
     }
 
-    ubyte[] getData()
+    @property ubyte[] data()
     {
         return stream.data;
     }
@@ -54,7 +54,7 @@ class MemoryOutputBitStream : OutputBitStream
 /// Wraps an InputStream class and provides bitwise access
 class InputBitStreamWrapper : InputBitStream
 {
-    InputStream stream;
+    private InputStream stream;
     this(InputStream stream)
     {
         this.stream = stream;
@@ -165,7 +165,7 @@ unittest {
     stream.writeBit(false);
     stream.writeBit(false);
     test!("InputBitStreamWrapper");
-    ubyte[] data = stream.getData;
+    ubyte[] data = stream.data;
     auto istream = new InputBitStreamWrapper(new MemoryStream(data, false));
 
     

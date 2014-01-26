@@ -82,7 +82,7 @@ void testPacketData(alias GET_OUTPUT_STREAM, alias GET_INPUT_STREAM, DATA_TYPE)(
         writeln(fieldsToString(outputPacketData));
     }
     // generate outputPacketData from inputBinary
-    auto inputStream = GET_INPUT_STREAM(outputStream.getData());
+    auto inputStream = GET_INPUT_STREAM(outputStream.data);
     inputStream.val(outputPacketData);
     assert(outputPacketData == inputData);
 }
@@ -129,7 +129,7 @@ void testPacketData(alias GET_OUTPUT_STREAM, alias GET_INPUT_STREAM, DATA_TYPE)(
     }
     outputStream.val(outputPacketData);
 
-    assert(outputStream.getData() == inputBinary);
+    assert(outputStream.data == inputBinary);
 }
 
 /+

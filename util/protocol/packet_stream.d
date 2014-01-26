@@ -41,26 +41,26 @@ final class PacketStream(bool input)
     {
         this(ubyte[] data, void[] delegate(bool,void[], size_t) decompress) 
         {
-            this.data = new InputBitStreamWrapper(new MemoryStream(data, false));
+            this._stream = new InputBitStreamWrapper(new MemoryStream(data, false));
             this.decompress = decompress;
         }
         this(InputBitStream data, void[] delegate(bool,void[], size_t) decompress) 
         {
-            this.data = data;
+            this._stream = data;
             this.decompress = decompress;
         }
         private void[] delegate(bool,void[], size_t) decompress;
-        InputBitStream data;
+        private InputBitStream _stream;
     }
     else
     {
         this(void[] delegate(bool,void[]) compress)
         {
-            this.data = new MemoryOutputBitStream();
+            this._stream = new MemoryOutputBitStream();
             this.compress = compress;
         }
         private void[] delegate(bool,void[]) compress;
-        MemoryOutputBitStream data;
+        private MemoryOutputBitStream _stream;
     }
 
     static if(isOutput)
@@ -68,9 +68,9 @@ final class PacketStream(bool input)
         /+
          + Returns data written so far to the stream
          +/
-        ubyte[] getData()
+        ubyte[] data()
         {
-            return data.getData();
+            return _stream.data();
         }
 
         /+
@@ -79,7 +79,7 @@ final class PacketStream(bool input)
         string toHex()
         {
             import util.struct_printer;
-            return data.getData().toHex();
+            return _stream.data().toHex();
         }
     }
 
@@ -354,13 +354,13 @@ final class PacketStream(bool input)
             static if (INCLUDE_SIZE)
                 size -= SIZE_TYPE.sizeof;
 
-            auto readBuff = data.sreadBytes(size);
+            auto readBuff = _stream.sreadBytes(size);
 
-            auto oldStream = this.data;
+            auto oldStream = this._stream;
             auto countingStream = new CountingInputStream(new MemoryStream(readBuff, false));
-            this.data = new InputBitStreamWrapper(countingStream);
+            this._stream = new InputBitStreamWrapper(countingStream);
             scope(exit)
-                this.data = oldStream;
+                this._stream = oldStream;
 
             del();
 
@@ -369,17 +369,17 @@ final class PacketStream(bool input)
         }
         else
         {
-            auto oldPos = data.getData.length;
+            auto oldPos = _stream.data.length;
             del();
-            auto newPos = data.getData.length;
+            auto newPos = _stream.data.length;
             SIZE_TYPE size = cast(SIZE_TYPE)(newPos - oldPos);
 
-            auto oldStream = this.data;
-            this.data = blockSize.stream;
+            auto oldStream = this._stream;
+            this._stream = blockSize.stream;
             scope(exit)
-                this.data = oldStream;
+                this._stream = oldStream;
 
-            auto blockSizeData = this.data.getData;
+            auto blockSizeData = this._stream.data;
 
             static if (INCLUDE_SIZE)
                 size += SIZE_TYPE.sizeof;
@@ -411,8 +411,8 @@ final class PacketStream(bool input)
         else
         {
             // save place to write block size to
-            block.stream = this.data;
-            block.pos = this.data.getData.length;
+            block.stream = this._stream;
+            block.pos = this._stream.data.length;
             // put a placeholder value in the stream
             val(size);
         }
@@ -453,20 +453,20 @@ final class PacketStream(bool input)
             val(uncompressedSize);
 
             static if (WITH_SIZE)
-                auto compressedData = data.sreadBytes(cast(size_t)compressedSize);
+                auto compressedData = _stream.sreadBytes(cast(size_t)compressedSize);
             else
             {
-                auto compressedData = data.readAll();
+                auto compressedData = _stream.readAll();
             }
 
             void[] readBuff = decompress(DEFLATE_STREAM, compressedData, uncompressedSize);
 
-            auto oldStream = this.data;
+            auto oldStream = this._stream;
 
             auto countingStream = new CountingInputStream(new MemoryStream(cast(ubyte[])readBuff, false));
-            this.data = new InputBitStreamWrapper(countingStream);
+            this._stream = new InputBitStreamWrapper(countingStream);
             scope(exit)
-                this.data = oldStream;
+                this._stream = oldStream;
 
             del();
 
@@ -475,13 +475,13 @@ final class PacketStream(bool input)
         }
         else
         {
-            auto oldStream = this.data;
-            this.data = new MemoryOutputBitStream();
+            auto oldStream = this._stream;
+            this._stream = new MemoryOutputBitStream();
 
             del();
 
-            auto uncompressedData = this.data.getData();
-            this.data = oldStream;
+            auto uncompressedData = this._stream.data;
+            this._stream = oldStream;
 
             void[] compressedBuff = compress(DEFLATE_STREAM, uncompressedData);
 
@@ -493,7 +493,7 @@ final class PacketStream(bool input)
             uint uncompressedSize = uncompressedData.length;
             val(uncompressedSize);
 
-            data.write(cast(ubyte[])compressedBuff);
+            _stream.write(cast(ubyte[])compressedBuff);
         }
     }
 }
@@ -584,7 +584,7 @@ template asBits(byte BITS)
         // not equal because of signed problems
         static assert(VAL.sizeof * 8 > BITS);
         for (byte i = BITS - 1; i >= 0; --i)
-            p.data.writeBit((val & (1 << i)) != 0);
+            p._stream.writeBit((val & (1 << i)) != 0);
     }
     VAL read(VAL, PACKET_STREAM)(PACKET_STREAM p) if (PACKET_STREAM.isInput && isIntegral!VAL)
     {
@@ -600,7 +600,7 @@ template asBits(byte BITS)
             VAL value = 0;
         }
         for (byte i = BITS - 1; i >= 0; --i)
-            if (p.data.readBit())
+            if (p._stream.readBit())
                 value |= (1 << i);
 
         return cast(VAL)value;
@@ -636,10 +636,10 @@ static struct identity
     
     static void write(VAL, PACKET_STREAM)(PACKET_STREAM p, auto ref VAL val) if (PACKET_STREAM.isOutput)
     {
-        static if (is (typeof(p.data.swrite!VAL(val))== void))
-            p.data.swrite!VAL(val);
+        static if (is (typeof(p._stream.swrite!VAL(val))== void))
+            p._stream.swrite!VAL(val);
         else static if (is (VAL == Bit))
-            p.data.writeBit(val);
+            p._stream.writeBit(val);
         else static if (is (typeof(val.stream(p)) == void))
             val.stream(p);
         else
@@ -655,10 +655,10 @@ static struct identity
 
     static VAL read(VAL, PACKET_STREAM)(PACKET_STREAM p) if (PACKET_STREAM.isInput)
     {
-        static if (is (typeof(p.data.sread!VAL())== VAL))
-            return p.data.sread!VAL();
+        static if (is (typeof(p._stream.sread!VAL())== VAL))
+            return p._stream.sread!VAL();
         else static if (is (VAL == Bit))
-            return Bit(p.data.readBit());
+            return Bit(p._stream.readBit());
         else static if (is (typeof(VAL.init.stream(p)) == void))
         {
             auto val = VAL.init;
@@ -689,17 +689,17 @@ static struct asCString
     {
         foreach(ref c; val)
         {
-            p.data.swrite!char(c);
+            p._stream.swrite!char(c);
         }
-        p.data.swrite!char('\0');
+        p._stream.swrite!char('\0');
     }
     static VAL read(VAL, PACKET_STREAM)(PACKET_STREAM p) if (PACKET_STREAM.isInput && isSomeString!VAL)
     {
         auto cstr = appender!(char[]);
        
-        while (!p.data.empty())  // CDataStore::GetCString checks for empty too
+        while (!p._stream.empty())  // CDataStore::GetCString checks for empty too
         {
-            auto c = p.data.sread!char();
+            auto c = p._stream.sread!char();
             if (c == '\0')
             {
                 break;
@@ -719,7 +719,7 @@ unittest {
     {
         auto output = new PacketStream!false(null);
         output.val!(Format)(value);
-        ubyte buffer[] = output.getData();
+        ubyte buffer[] = output.data;
         auto input = new PacketStream!true(buffer, null);
         T readValue;
         input.val!(Format)(readValue);
@@ -743,7 +743,7 @@ unittest {
         auto output = new PacketStream!false(null);
         if (output.valMark!(Format)(value))
             output.val!(Format)(value);
-        ubyte buffer[] = output.getData();
+        ubyte buffer[] = output.data;
         auto input = new PacketStream!true(buffer, null);
         T readValue;
         if (input.valMark!(Format)(readValue))
@@ -759,7 +759,7 @@ unittest {
         auto output = new PacketStream!false(null);
         if (output.valMark!(Format)(value))
             output.val!(Format)(value);
-        ubyte buffer[] = output.getData();
+        ubyte buffer[] = output.data;
         auto input = new PacketStream!true(buffer, null);
         T readValue;
         input.val!(Format)(readValue);
@@ -799,7 +799,7 @@ unittest {
         {
             output.val!(Format)(el);
         }
-        ubyte buffer[] = output.getData();
+        ubyte buffer[] = output.data;
         auto input = new PacketStream!true(buffer, null);
         T readVal;
         input.valCount!(COUNTER_TYPE, Format)(readVal);
@@ -836,7 +836,7 @@ unittest {
     {
         auto output = new PacketStream!false(null);
         output.valArraySeq!(Format)(value, indexes);
-        ubyte buffer[] = output.getData();
+        ubyte buffer[] = output.data;
         auto input = new PacketStream!true(buffer, null);
         T readValue;
         input.valArraySeq!(Format)(readValue, indexes);
@@ -860,7 +860,7 @@ unittest {
         auto output = new PacketStream!false(null);
         output.valPackMarkByteSeq!(Format)(value, markIndexes);
         output.valPackByteSeq!(Format)(value, byteIndexes);
-        ubyte buffer[] = output.getData();
+        ubyte buffer[] = output.data;
         auto input = new PacketStream!true(buffer, null);
         T readValue;
         input.valPackMarkByteSeq!(Format)(readValue, markIndexes);
@@ -941,7 +941,7 @@ unittest {
                 output.val(addon.crc);
                 
             });
-            buffer = output.getData();
+            buffer = output.data;
         }
 
         Addon readValue;
@@ -989,7 +989,7 @@ unittest {
                 output.val(addon.crc);
                 output.val(addon.unknown);
             });
-            buffer = output.getData();
+            buffer = output.data;
         }
 
         Addon readValue;
@@ -1022,7 +1022,7 @@ unittest {
         {
             output.valBit!(Format)(value, i);
         }
-        ubyte buffer[] = output.getData();
+        ubyte buffer[] = output.data;
         auto input = new PacketStream!true(buffer,null);
         T readValue;
         foreach(i;0..T.sizeof*8)

@@ -4,8 +4,8 @@
 module authserver.session;
 
 import std.conv;
-import std.system;
 import std.typecons;
+import std.system;
 
 import wowdefs.wow_versions;
 

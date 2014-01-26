@@ -57,7 +57,7 @@ public:
         auto packetStream = new PacketStream!false(null);
         .write(packet, connectionStream, packetStream);
 
-        logDiagnostic(logId ~ "%s", packetStream.getData.toHex);
+        logDiagnostic(logId ~ "%s", packetStream.data.toHex);
     }
 
     /// returns true if connection is still active
@@ -99,7 +99,7 @@ body
 {
     packetStream.val(*packet);
     stream.swrite!ubyte(OPCODE);
-    stream.write(packetStream.getData);
+    stream.write(packetStream.data);
 }
 
 unittest
