@@ -3,6 +3,7 @@
     "description": "",
     "dependencies": {
          "yawr:authserver": "~master",
+         "yawr:authprotocol": "~master",
          "yawr:util": "~master",
          "yawr:wowdefs": "~master",
          "yawr:wowprotocol": "~master",
@@ -24,6 +25,7 @@
             "dependencies": {
                 "vibe-d": "~master",
                 "mysql-native": "~master",
+                "yawr:util": "~master",
             },
             "configurations": [
                 {
