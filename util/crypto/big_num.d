@@ -2,10 +2,9 @@ module util.crypto.big_num;
 
 import std.typecons;
 import std.traits;
-import std.system;
+public import std.system;
 import std.algorithm : reverse;
 import std.exception;
-import std.bigint;
 
 import util.string;
 import deimos.openssl.bn;
