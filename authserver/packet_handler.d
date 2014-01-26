@@ -5,6 +5,7 @@
 module authserver.packet_handler;
 
 import std.conv;
+import std.typecons;
 
 import wowdefs.wow_versions;
 
@@ -12,7 +13,6 @@ import authprotocol.defines;
 import authprotocol.packet_data;
 
 import util.crypto.srp6;
-import std.typecons;
 import authserver.database.dao;
 
 auto handleRealmList(ProtocolVersion VER, PACKET, REALM_DAO)(in PACKET packet, REALM_DAO realmDao)

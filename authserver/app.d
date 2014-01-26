@@ -6,13 +6,17 @@ module authserver.app;
 
 import std.conv;
 
-import vibe.d : runEventLoop;
+import vibe.d : runEventLoop, runTask;
 import util.log;
+
+import std.functional : toDelegate;
 
 import authserver.session;
 import authserver.conf;
 import authserver.database.dao;
 import authserver.log;
+static import authserver.batch;
+
 
 int main()
 {
@@ -31,6 +35,7 @@ int main()
 
         logger.logInfo("authserver started");
 
+        runTask(toDelegate(&authserver.batch.run));
         ret = runEventLoop();
     }
     catch (Throwable t)

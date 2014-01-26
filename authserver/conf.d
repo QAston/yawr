@@ -12,7 +12,7 @@ import util.conf;
 auto createConfig()
 {
     auto c = new Config;
-    loadOpt("listenInterface", c.listenInterface, "Ip address of the interface on which server will listen for connections");
+    loadOpt("listenInterface", c.listenInterface, "Ip address of the interface on which server will listen for connections, Default: all interfaces");
 
     loadOpt("listenPort", c.listenPort, "Port number which server will listen for connections");
 
@@ -21,6 +21,8 @@ auto createConfig()
     loadOpt("logFileLevel", c.logFileLevel, "Level of messages to log to logFile");
 
     loadOpt("authDbConnectionString", c.authDbConnectionString, "Mysql connection string in format: host=localhost;user=user;pwd=password;db=auth");
+
+    loadOpt("batchProcessingInterval", c.batchProcessingInterval, "How often authserver runs mainteance queries (expiring bans, etc) in seconds. 0 - only on startup.");
 
     string[] args;
     if (finalizeCommandLineOptions(&args))
@@ -35,6 +37,7 @@ immutable class Config
     immutable string logFile;
     immutable uint logFileLevel;
     immutable string authDbConnectionString;
+    immutable uint batchProcessingInterval;
     pure this()
     {
         listenPort = 3724;
@@ -42,6 +45,7 @@ immutable class Config
         logFile = "";
         logFileLevel = 0;
         authDbConnectionString = "";
+        batchProcessingInterval = 60*10; // 10 mins
     }
 }
 

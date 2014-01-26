@@ -16,6 +16,11 @@ class AuthDao
     {
         return database.selectResult!(AuthDto)(" FROM account WHERE username=?", accountName.to!(char[]));
     }
+
+    void deleteExpiredIPBans()
+    {
+        database.exec("DELETE FROM ip_banned WHERE unbandate<>bandate AND unbandate<=UNIX_TIMESTAMP()");
+    }
 }
 
 struct AuthDto
