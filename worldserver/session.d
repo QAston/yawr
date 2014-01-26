@@ -42,8 +42,8 @@ void run(TCPConnection connectionStream)
 {
     import std.random;
     
-    doHandshakes(connectionStream, unpredictableSeed());
-    auto stream = ConnectionStream(connectionStream, []);
+    auto stream = ConnectionStream(connectionStream);
+    authenticate(stream, unpredictableSeed());
     logDiagnostic("Got connection:"~stream.logId());
     auto session = new Session(stream);
     scope(exit)
@@ -58,6 +58,29 @@ void run(TCPConnection connectionStream)
     {
         logError(session.logId~"%s", t.to!string);
         session.end();
+    }
+}
+
+void authenticate(ConnectionStream stream, uint seed)
+{
+    import util.crypto.big_num;
+    {
+        auto packet = Packet!(Opcode.SMSG_AUTH_CHALLENGE, Dir.s2c)();
+        packet.shuffleCount = 1; // 1...31
+        packet.serverSeed = seed;
+
+        auto number = random(4*8*8);
+        packet.newSeeds = cast(uint[])number.toByteArray(Endian.bigEndian); // new encryption seed
+
+        stream.write(packet);
+    }
+
+    {
+        Opcode op = stream.read();
+        assert(op == Opcode.CMSG_AUTH_SESSION);
+        auto packet = stream.read!(Opcode.CMSG_AUTH_SESSION);
+
+        stream.initCipher([]);
     }
 }
 

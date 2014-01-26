@@ -23,42 +23,6 @@ import worldserver.log;
 import std.conv;
 import std.array;
 
-
-void doHandshakes(TCPConnection connectionStream, uint seed)
-{
-    {
-        auto packet = Packet!(Opcode.SMSG_AUTH_CHALLENGE, Dir.s2c)();
-        packet.shuffleCount = 1; // 1...31
-        packet.serverSeed = seed;
-
-        auto number = random(4*8*8);
-        packet.newSeeds = cast(uint[])number.toByteArray(Endian.bigEndian); // new encryption seed
-
-        auto packetStream = new PacketStream!false(null);
-        packetStream.val(packet);
-        auto stream  = new MemoryOutputBitStream();
-        stream.writeServerHeader(ServerHeader(packetStream.data.length, Opcode.SMSG_AUTH_CHALLENGE));
-
-        stream.write(packetStream.data);
-
-        connectionStream.write(stream.data());
-    }
-
-    {
-        ubyte[] headerBytes = connectionStream.sreadBytes(6);
-        ClientHeader header = readClientHeader(headerBytes);
-
-        logDiagnostic("Got packet: %s", (cast(Opcode)header.opcode).opcodeToString);
-
-        auto readBuffer = new ubyte[header.dataSize];
-        connectionStream.read(readBuffer);
-        auto inputStream = new PacketStream!true(readBuffer, null);
-        auto packet = Packet!(Opcode.CMSG_AUTH_SESSION, Dir.c2s)();
-        inputStream.val(packet);
-    }
-}
-
-
 /++
 + Deals with reading and writing data between client and server
 +/
@@ -66,26 +30,33 @@ struct ConnectionStream
 {
 private:
     TCPConnection connectionStream;
-    ARC4 inputDecrypt;
-    ARC4 outputDecrypt;
+    Cipher inputCipher;
+    Cipher outputCipher;
     Session session;
+    ClientHeader nextHeader;
 public:
-    this(TCPConnection connectionStream, ubyte[] K)
+    this(TCPConnection connectionStream)
     {
         this.connectionStream = connectionStream;
         this.session = new Session();
 
+        inputCipher = new NullCipher;
+        outputCipher = new NullCipher;
+    }
+
+    void initCipher(ubyte[] K)
+    {
         ubyte[] encryptHash = keyedDigest!HMAC(bin!r"CC98AE04E897EACA12DDC09342915357", K);
         ubyte[] decryptHash = keyedDigest!HMAC(bin!r"C2B3723CC6AED9B5343C53EE2F4367CE", K);
 
-        inputDecrypt = ARC4(decryptHash);
-        outputDecrypt = ARC4(encryptHash);
+        inputCipher = new ARC4Cipher(decryptHash);
+        outputCipher = new ARC4Cipher(encryptHash);
 
         // Drop first 1024 bytes, as WoW uses ARC4-drop1024.
         ubyte[1024] syncBuf;
 
-        inputDecrypt.update(syncBuf);
-        outputDecrypt.update(syncBuf);
+        inputCipher.update(syncBuf);
+        outputCipher.update(syncBuf);
     }
 
     /++
@@ -93,11 +64,12 @@ public:
     +/
     Opcode read()
     {
-        ubyte[] encodedHeaderBytes = connectionStream.sreadBytes(6);
-        ubyte[] decodedHeader = inputDecrypt.update(encodedHeaderBytes);
-        ClientHeader header = readClientHeader(decodedHeader);
-
-        return cast(Opcode)header.opcode;
+        ubyte[] cipheredHeaderBytes = connectionStream.sreadBytes(6);
+        ubyte[] headerBytes = inputCipher.update(cipheredHeaderBytes);
+        nextHeader = readClientHeader(headerBytes);
+        logDiagnostic("Got header: %s", (cast(Opcode)nextHeader.opcode).opcodeToString);
+        logDiagnostic("Got data size: %s", nextHeader.dataSize);
+        return cast(Opcode)nextHeader.opcode;
     }
 
     /++
@@ -105,25 +77,35 @@ public:
     +/
     auto read(Opcode OPCODE)()
     {
-        return .read!(OPCODE, Dir.c2s)(new PacketStream!true(new InputBitStreamWrapper(connectionStream), this.session.decompress));
+        assert(OPCODE == nextHeader.opcode);
+
+        auto readBuffer = new ubyte[nextHeader.dataSize];
+        connectionStream.read(readBuffer);
+        auto inputStream = new PacketStream!true(readBuffer, &this.session.decompress);
+        auto packet = Packet!(OPCODE, Dir.c2s)();
+        inputStream.val(packet);
+        return packet;
     }
 
     /++
     + Writes specified packet to TCP
     +/
-    void write(PACKET: PacketData!(PacketInfo!(OPCODE, Dir.s2c)), Opcode OPCODE)(PACKET* packet)
-    in
-    {
-        assert(packet !is null);
-    }
-    body
+    void write(PACKET: PacketData!(PacketInfo!(OPCODE, Dir.s2c)), Opcode OPCODE)(ref PACKET packet)
     {
         logDiagnostic(logId ~ "Writing packet-opcode: %s", OPCODE.opcodeToString);
 
-        logDebug(logId ~ "%s", fieldsToString(*packet));
+        logDebug(logId ~ "%s", fieldsToString(packet));
 
-        auto packetStream = new PacketStream!false(this.session.compress);
-        .write(packet, connectionStream, packetStream);
+        auto packetStream = new PacketStream!false(&this.session.compress);
+        packetStream.val(packet);
+        auto ciphered = appender!(ubyte[]);
+        ciphered.writeServerHeader(ServerHeader(packetStream.data.length, OPCODE));
+        ubyte[] cipheredHeader = outputCipher.update(ciphered.data);
+
+        auto stream  = new MemoryOutputBitStream();
+        stream.write(cipheredHeader);
+        stream.write(packetStream.data);
+        connectionStream.write(stream.data);
 
         logDiagnostic(logId ~ "%s", packetStream.data.toHex);
     }

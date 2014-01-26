@@ -75,3 +75,24 @@ unittest {
         assert((arc4.update(cast(ubyte[])"Attack at dawn") ~ arc4.finish()) == bin!x"45A01F645FC35B383552544B9BF5");
     }
 }
+
+public import util.crypto.cipher;
+
+class ARC4Cipher : Cipher {
+    private ARC4 _cipher;
+
+    this(const(ubyte)[] seed)
+    {
+        _cipher = ARC4(seed);
+    }
+
+    ubyte[] update(const(ubyte)[] data)
+    {
+        return _cipher.update(data);
+    }
+
+    ubyte[] finish()
+    {
+        return _cipher.finish();
+    }
+}

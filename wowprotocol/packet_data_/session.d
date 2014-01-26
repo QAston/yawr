@@ -58,12 +58,14 @@ struct PacketData(PACKET) if(PACKET.op == Opcode.CMSG_AUTH_SESSION  && wowVersio
     
     void stream(PACKET_STREAM)(PACKET_STREAM p)
     {
+        import std.stdio;
         p.val(clientBuild);
+        writeln(clientBuild);
         p.val(unk2);
-        p.val(account);
+        p.val!(asCString)(accountName);
+        writeln(accountName);
         p.val(unk3);
         p.val(clientSeed);
-        p.val(clientBuild);
         p.val(unk5);
         p.val(unk6);
         p.val(unk7);
