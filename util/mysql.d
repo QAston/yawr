@@ -56,19 +56,50 @@ final class SqlDB
     /++
     + Returns a range of results of a SELECT query to database
     + Params:
-    +   RESULT_TYPE - SELECTed structure - field names and types must match db
+    +   RESULT_TYPE - SELECTed structure
     + Args:
-    +   fromWhere - FROM, WHERE and other sql clauses of a query
-    +   params - prepared statement params for fromWhere clause
+    +   query - full query - SELECT, FROM, WHERE and other sql clauses of a query
+    +   params - prepared statement params for query
     +/
-    auto selectResults(RESULT_TYPE, PARAMS...)(string fromWhere, PARAMS params)
+    auto results(RESULT_TYPE, PARAMS...)(string query, PARAMS params)
     {
         auto cmd = createCommand();
-        cmd.sql = "SELECT " ~ formatSqlColumnList!(RESULT_TYPE)() ~ fromWhere;
+        cmd.sql = query;
         cmd.prepare();
         static if (PARAMS.length > 0)
             cmd.cmd.bindParameterTuple!(PARAMS)(params);
         return cmd.execPreparedResult().resultRange!(RESULT_TYPE)();
+    }
+
+    /++
+    + Returns a Nullable!RESULT_TYPE result of a SELECT query to database
+    + Params:
+    +   RESULT_TYPE - SELECTed structure
+    + Args:
+    +   query - full query - SELECT, FROM, WHERE and other sql clauses of a query
+    +   params - prepared statement params for query
+    +/
+    auto result(RESULT_TYPE, PARAMS...)(string query, PARAMS params)
+    {
+        auto res = results!(RESULT_TYPE)(query, params);
+        assert(res.length < 2);
+        if (res.length == 0)
+            return Nullable!(RESULT_TYPE)();
+        return Nullable!(RESULT_TYPE)(res.front);
+    }
+
+    /++
+    + Returns a range of results of a SELECT query to database, produces query string based on structure field names
+    + Selects fields names exactly like structure fields.
+    + Params:
+    +   RESULT_TYPE - SELECTed structure - field names and types must match db
+    + Args:
+    +   fromWhere - query without SELECT [...], only FROM, WHERE and other clauses
+    +   params - prepared statement params for fromWhere clause
+    +/
+    auto selectResults(RESULT_TYPE, PARAMS...)(string fromWhere, PARAMS params)
+    {
+        return results!(RESULT_TYPE)("SELECT " ~ formatSqlColumnList!(RESULT_TYPE)() ~ fromWhere, params);
     }
 
     /++
@@ -100,9 +131,20 @@ auto resultRange(RESULT_TYPE, RANGE)(RANGE range)
     return range.map!(toStructRet!(RESULT_TYPE));
 }
 
-public RESULT_TYPE toStructRet(RESULT_TYPE)(Row row)
+public auto toStructRet(RESULT_TYPE)(Row row) if (!is(RESULT_TYPE == class))
 {
-    RESULT_TYPE res;
-    row.toStruct(res);
-    return res;
+    static if (!is (RESULT_TYPE == struct))
+    {
+        Tuple!(RESULT_TYPE) res;
+
+        row.toStruct(res);
+        return res[0];
+    }
+    else 
+    {
+        RESULT_TYPE res;
+    
+        row.toStruct(res);
+        return res;
+    }
 }
