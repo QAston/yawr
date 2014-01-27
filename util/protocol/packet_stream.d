@@ -524,7 +524,7 @@ struct Opt(T)
         optStruct = value;
     }
     mixin Proxy!optStruct;
-    util.typecons.Nullable!T optStruct;
+    util.typecons.Optional!T optStruct;
 }
 
 /+
@@ -539,7 +539,7 @@ struct MarkedOpt(T)
     }
 
     mixin Proxy!optStruct;
-    util.typecons.Nullable!T optStruct;
+    util.typecons.Optional!T optStruct;
 }
 
 class PacketStreamException : Exception
