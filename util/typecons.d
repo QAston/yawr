@@ -126,7 +126,7 @@ auto emptyArray(T)() @trusted
 
 ///
 unittest {
-    assert (emptyArray!int != null);
+    assert (emptyArray!int !is null);
     assert((emptyArray!int).length == 0);
 }
 
@@ -212,7 +212,7 @@ struct Optional(T)
         return val.get.to!string();
     }
 
-    bool opEquals()(auto ref const Nullable!T s) const 
+    bool opEquals()(auto ref const Optional!T s) const 
     {
         if (val.isNull && s.val.isNull)
             return true;
@@ -244,7 +244,7 @@ struct Optional(T)
 }
 
 unittest {
-    Nullable!int a;
+    Optional!int a;
     assert(a.isNull);
     assertThrown!Throwable(a.get);
     a = 5;
@@ -265,17 +265,17 @@ unittest {
 }
 unittest
 {
-    auto k = Nullable!int(74);
+    auto k = Optional!int(74);
     assert(k == 74);
     k.nullify();
     assert(k.isNull);
 }
 unittest
 {
-    static int f(in Nullable!int x) {
+    static int f(in Optional!int x) {
         return x.isNull ? 42 : x.get;
     }
-    Nullable!int a;
+    Optional!int a;
     assert(f(a) == 42);
     a = 8;
     assert(f(a) == 8);
@@ -285,7 +285,7 @@ unittest
 unittest
 {
     static struct S { int x; }
-    Nullable!S s;
+    Optional!S s;
     assert(s.isNull);
     s = S(6);
     assert(s == S(6));
@@ -298,10 +298,10 @@ unittest
 }
 unittest
 {
-    // Ensure Nullable can be used in pure/nothrow/@safe environment.
+    // Ensure Optional can be used in pure/nothrow/@safe environment.
     function() pure nothrow @safe
     {
-        Nullable!int n;
+        Optional!int n;
         assert(n.isNull);
         n = 4;
         assert(!n.isNull);
@@ -312,14 +312,14 @@ unittest
 }
 unittest
 {
-    // Ensure Nullable can be used when the value is not pure/nothrow/@safe
+    // Ensure Optional can be used when the value is not pure/nothrow/@safe
     static struct S
     {
         int x;
         this(this) @system {}
     }
 
-    Nullable!S s;
+    Optional!S s;
     assert(s.isNull);
     s = S(5);
     assert(!s.isNull);
@@ -330,7 +330,7 @@ unittest
 unittest
 {
     // Bugzilla 9404
-    alias N = Nullable!int;
+    alias N = Optional!int;
 
     void foo(N a)
     {
@@ -342,36 +342,36 @@ unittest
 }
 unittest
 {
-    //Check nullable immutable is constructable
+    //Check Optional immutable is constructable
     {
-        auto a1 = Nullable!(immutable int)();
-        auto a2 = Nullable!(immutable int)(1);
+        auto a1 = Optional!(immutable int)();
+        auto a2 = Optional!(immutable int)(1);
         auto i = a2.get;
     }
-    //Check immutable nullable is constructable
+    //Check immutable Optional is constructable
     {
-        auto a1 = immutable (Nullable!int)();
-        auto a2 = immutable (Nullable!int)(1);
+        auto a1 = immutable (Optional!int)();
+        auto a2 = immutable (Optional!int)(1);
         auto i = a2.get;
     }
 }
 unittest
 {
-    alias NInt   = Nullable!int;
+    alias NInt   = Optional!int;
 
     //Construct tests
     {
-        //from other Nullable null
+        //from other Optional null
         NInt a1;
         NInt b1 = a1;
         assert(b1.isNull);
 
-        //from other Nullable non-null
+        //from other Optional non-null
         NInt a2 = NInt(1);
         NInt b2 = a2;
         assert(b2 == 1);
 
-        //Construct from similar nullable
+        //Construct from similar Optional
         auto a3 = immutable(NInt)();
         NInt b3 = a3;
         assert(b3.isNull);
@@ -379,19 +379,19 @@ unittest
 
     //Assign tests
     {
-        //from other Nullable null
+        //from other Optional null
         NInt a1;
         NInt b1;
         b1 = a1;
         assert(b1.isNull);
 
-        //from other Nullable non-null
+        //from other Optional non-null
         NInt a2 = NInt(1);
         NInt b2;
         b2 = a2;
         assert(b2 == 1);
 
-        //Construct from similar nullable
+        //Construct from similar Optional
         auto a3 = immutable(NInt)();
         NInt b3 = a3;
         b3 = a3;
@@ -401,14 +401,14 @@ unittest
 unittest
 {
     import std.typetuple;
-    //Check nullable is nicelly embedable in a struct
+    //Check Optional is nicelly embedable in a struct
     static struct S1
     {
-        Nullable!int ni;
+        Optional!int ni;
     }
     static struct S2 //inspired from 9404
     {
-        Nullable!int ni;
+        Optional!int ni;
         this(S2 other)
         {
             ni = other.ni;
