@@ -2,7 +2,7 @@ module util.traits;
 
 import std.typetuple;
 import std.algorithm;
-import std.traits;
+public import std.traits;
 
 /+
  + Tests whenever there's versionString version defined

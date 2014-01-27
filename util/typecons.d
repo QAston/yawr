@@ -1,6 +1,6 @@
 module util.typecons;
 
-import std.typecons;
+public import std.typecons;
 import std.exception;
 import util.traits;
 
@@ -124,11 +124,50 @@ auto emptyArray(T)() @trusted
     return (cast(T*) 1)[0 .. 0];
 }
 
+///
+unittest {
+    assert (emptyArray!int != null);
+    assert((emptyArray!int).length == 0);
+}
+
+/// Returns newly created struct wrapped in a nullable with args passed to struct constructor
+auto nullable(T, ARGS...)(ARGS args) if (is(T==struct))
+{
+    return Nullable!(T)(T(args));
+}
+
+/// ditto
+auto nullable(T, VAL)(VAL args) if (isBuiltinType!T)
+{
+    T a = args;
+    return Nullable!(T)(a);
+}
+
+///
+unittest {
+    struct A
+    {
+        int a;
+    }
+    auto a = nullable!A(5);
+    static assert(is (typeof(a) == Nullable!A));
+    assert(a.get().a == 5);
+    assert(!a.isNull());
+}
+
+///
+unittest {
+    auto a = nullable!int(5);
+    static assert(is (typeof(a) == Nullable!int));
+    assert(a.get() == 5);
+    assert(!a.isNull());
+}
+
 /+
  + A wrapper around phobos's nullable
  + Adds better toString and opEquals
  +/
-struct Nullable(T)
+struct Optional(T)
 {
     private std.typecons.Nullable!T val;
 
