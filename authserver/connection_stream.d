@@ -89,4 +89,9 @@ public:
     {
         return "ConnectionStream: "~connectionStream.peerAddress.to!string;
     }
+
+    string getIp() const
+    {
+        return connectionStream.peerAddress.to!string;
+    }
 }

@@ -5,7 +5,7 @@
 module authserver.packet_handler;
 
 import std.conv;
-import std.typecons;
+import util.typecons;
 
 import wowdefs.wow_versions;
 
@@ -50,7 +50,7 @@ auto handleRealmList(ProtocolVersion VER, PACKET, REALM_DAO)(in PACKET packet, R
 }
 
 Tuple!(PacketResponse!(PACKET), "packet", bool, "end")
-handleLogonProof(ProtocolVersion VER, PACKET, CHALLENGE)(in PACKET packet, in CHALLENGE challenge, in AuthDto authInfo)
+handleLogonProof(ProtocolVersion VER, PACKET, CHALLENGE)(in PACKET packet, in CHALLENGE challenge, in AuthDetailedDto authInfo)
 {
     import util.crypto.big_num;
     import std.system;
@@ -77,29 +77,20 @@ handleLogonProof(ProtocolVersion VER, PACKET, CHALLENGE)(in PACKET packet, in CH
     return typeof(return)(response, false);
 }
 
-Tuple!(PacketResponse!(PACKET), "packet", bool, "end", ServerChallenge!(SRPTYPE), "challenge", Nullable!AuthDto, "authInfo", ProtocolVersion, "version_")
-handleLogonChallenge(PACKET, SRPTYPE, AUTH_DAO)(in PACKET packet, in SRPTYPE srp, AUTH_DAO authDao)
+Tuple!(PacketResponse!(PACKET), "packet", bool, "end", ServerChallenge!(SRPTYPE), "challenge", Nullable!AuthDetailedDto, "authInfo", ProtocolVersion, "version_")
+handleLogonChallenge(PACKET, SRPTYPE, AUTH_DAO)(in PACKET packet, in SRPTYPE srp, AUTH_DAO authDao, in string connectionIp)
 {
     import util.crypto.big_num;
-    import std.system;
 
     auto protocolVersion = packet.build.major >= MajorWowVersion.TBC ? ProtocolVersion.POST_BC : ProtocolVersion.PRE_BC;
 
     auto response = PacketResponse!(PACKET)();
 
-    auto authInfo = authDao.get(packet.accountName);
-    if (authInfo.isNull())
-    {
-        response.result = AuthResult.WOW_FAIL_UNKNOWN_ACCOUNT;
-        auto ret = typeof(return)();
-        ret.packet = response;
-        ret.end = true;
-        return ret;
-    }
-
     auto challenge = new ServerChallenge!(SRPTYPE)(util.crypto.big_num.random(19*8).toByteArray(Endian.littleEndian)[],srp);
 
-    response.result = AuthResult.WOW_SUCCESS;
+    auto authInfo = authDao.getDetailed(packet.accountName);
+
+    response.result = checkLoginAttempt(authInfo, connectionIp, authDao);
     auto secInf = typeof(response).SecurityInfo();
     auto bbytes = challenge.calculateB(BigNumber(authInfo.v).toByteArray(Endian.littleEndian));
     bbytes.length = 32;
@@ -111,4 +102,131 @@ handleLogonChallenge(PACKET, SRPTYPE, AUTH_DAO)(in PACKET packet, in SRPTYPE srp
 
     response.info = secInf;
     return typeof(return)(response, false, challenge, authInfo, protocolVersion);
+}
+
+AuthResult checkLoginAttempt(AUTH_DAO)(in Nullable!AuthDetailedDto authInfo, string connectionIp, AUTH_DAO authDao)
+{
+    // check for ip ban
+    auto banInfo = authDao.getIpBanned(connectionIp);
+    if (!banInfo.isNull())
+    {
+        return AuthResult.WOW_FAIL_BANNED;
+    }
+    // check account existence
+    if (authInfo.isNull())
+    {
+        return AuthResult.WOW_FAIL_UNKNOWN_ACCOUNT;
+    }
+    // check account lock to ip
+    if (authInfo.locked && authInfo.lastIp != connectionIp)
+    {
+        return AuthResult.WOW_FAIL_LOCKED_ENFORCED;
+    }
+    // check account lock to country
+    if (authInfo.country != "" && authInfo.country != "00" && authDao.getCountry(connectionIp) != authInfo.country)
+    {
+        return AuthResult.WOW_FAIL_UNLOCKABLE_LOCK;
+    }
+    // check account ban and suspension
+    auto accountBanInfo = authDao.getAccountBanned(authInfo.id);
+    if (!accountBanInfo.isNull())
+    {
+        if (accountBanInfo.suspended())
+            return AuthResult.WOW_FAIL_SUSPENDED;
+        else
+            return AuthResult.WOW_FAIL_BANNED;
+    }
+    return AuthResult.WOW_SUCCESS;
+}
+
+unittest {
+    import dmocks.mocks;
+    import authserver.database.dao;
+
+    auto mocker = new Mocker;
+
+    auto authDao = mocker.mockFinalPassTo!(AuthDao)(null);
+
+    string ip = "127.0.0.1";
+    auto authInfo = nullable!AuthDetailedDto("test");
+    mocker.allowUnexpectedCalls(true);
+    mocker.expect(authDao.getIpBanned(ip)).returns(nullable!IpBannedDto(ip, 0, 0, "", ""));
+    mocker.expect(authDao.getCountry(ip)).returns(nullable!string("UK"));
+    mocker.replay;
+    assert(checkLoginAttempt(authInfo, ip, authDao) == AuthResult.WOW_FAIL_BANNED);
+}
+
+unittest {
+    import dmocks.mocks;
+    import authserver.database.dao;
+    import util.typecons;
+
+    auto mocker = new Mocker;
+
+    auto authDao = mocker.mockFinalPassTo!(AuthDao)(null);
+
+    string name = "test";
+    string ip = "127.0.0.1";
+    mocker.allowUnexpectedCalls(true);
+    mocker.expect(authDao.getCountry(ip)).returns(nullable!string("UK"));
+    auto authInfo = nullable!AuthDetailedDto(name, "", 1, true, "UK", "127.0.0.2", 0, "", "");
+
+    mocker.replay;
+    assert(checkLoginAttempt(authInfo, ip, authDao) == AuthResult.WOW_FAIL_LOCKED_ENFORCED);
+}
+
+unittest {
+    import dmocks.mocks;
+    import authserver.database.dao;
+    import util.typecons;
+
+    auto mocker = new Mocker;
+
+    auto authDao = mocker.mockFinalPassTo!(AuthDao)(null);
+
+    string ip = "127.0.0.1";
+    auto authInfo = nullable!AuthDetailedDto("test");
+    mocker.allowUnexpectedCalls(true);
+    mocker.expect(authDao.getIpBanned(ip)).ignoreArgs.returns(nullable!IpBannedDto(ip, 0, 1, "", ""));
+    mocker.expect(authDao.getCountry(ip)).returns(nullable!string("UK"));
+    mocker.replay;
+    assert(checkLoginAttempt(authInfo, ip, authDao) == AuthResult.WOW_FAIL_BANNED);
+}
+
+unittest {
+    import dmocks.mocks;
+    import authserver.database.dao;
+    import util.typecons;
+
+    auto mocker = new Mocker;
+
+    auto authDao = mocker.mockFinalPassTo!(AuthDao)(null);
+
+    string ip = "127.0.0.1";
+    long accId = 1;
+    string name = "test";
+    auto authInfo = nullable!AuthDetailedDto(name, "", accId, false, "US", "127.0.0.2", 0, "", "");
+    mocker.allowUnexpectedCalls(true);
+    mocker.expect(authDao.getCountry(ip)).returns(nullable!string("UK"));
+    mocker.replay;
+    assert(checkLoginAttempt(authInfo, ip, authDao) == AuthResult.WOW_FAIL_UNLOCKABLE_LOCK);
+}
+
+unittest {
+    import dmocks.mocks;
+    import authserver.database.dao;
+    import util.typecons;
+
+    auto mocker = new Mocker;
+
+    auto authDao = mocker.mockFinalPassTo!(AuthDao)(null);
+
+    string ip = "127.0.0.1";
+    long accId = 1;
+    string name = "test";
+    auto authInfo = nullable!AuthDetailedDto(name, "", accId, true, "UK", "127.0.0.1", 0, "", "");
+    mocker.allowUnexpectedCalls(true);
+    mocker.expect(authDao.getCountry(ip)).returns(nullable!string("UK"));
+    mocker.replay;
+    assert(checkLoginAttempt(authInfo, ip, authDao) == AuthResult.WOW_SUCCESS);
 }

@@ -3,7 +3,6 @@
     "description": "",
     "dependencies": {
          "yawr:authserver": "~master",
-         "yawr:authprotocol": "~master",
          "yawr:util": "~master",
          "yawr:wowdefs": "~master",
          "yawr:wowprotocol": "~master",
@@ -23,7 +22,6 @@
             "targetType": "executable",
             "versions": ["VibeCustomMain"],
             "dependencies": {
-                "vibe-d": "~master",
                 "mysql-native": "~master",
                 "yawr:util": "~master",
             },
@@ -42,9 +40,9 @@
             "importPaths": ["."],
             "versions": ["VibeCustomMain"],
             "dependencies": {
-                "vibe-d": "~master",
+                "vibe-d": ">=0.7.19-beta.3",
                 "mysql-native": "~master",
-                "dmocks-revived": {"version": "~master", "path": "../dmocks"},
+                "dmocks-revived": "~master",
             },
             "configurations": [
                 {

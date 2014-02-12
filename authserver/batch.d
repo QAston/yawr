@@ -19,6 +19,7 @@ void run()
     {
         logDiagnostic("Applying batch queries to database...");
         auth.deleteExpiredIPBans();
+        auth.updateExpiredAccountBans();
         scope(exit)
             sleep(sleepDuration);
     }

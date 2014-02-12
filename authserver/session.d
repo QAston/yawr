@@ -21,7 +21,7 @@ import authserver.connection_stream;
 import authserver.packet_handler;
 import authserver.conf;
 
-import vibe.d;
+import vibe.d : listenTCP, TCPConnection;
 
 /++
 + Registers connection listener
@@ -69,7 +69,7 @@ class Session
     WowVersion clientBuild;
 
     ServerChallenge!(SRP!(Endian.littleEndian)) challenge;
-    Nullable!(AuthDto) authInfo;
+    Nullable!(AuthDetailedDto) authInfo;
 
     this(ConnectionStream stream)
     {
@@ -178,7 +178,7 @@ void receivedPacket(Opcode OPCODE : Opcode.AUTH_LOGON_CHALLENGE, ProtocolVersion
     auto packet = session.stream.read!(OPCODE, VER);
     assert(session.challenge is null);
     assert(session.authInfo.isNull);
-    auto result = handleLogonChallenge(packet, session.srp, getDao().auth());
+    auto result = handleLogonChallenge(packet, session.srp, getDao().auth(), session.stream.getIp());
     session.stream.write(&result.packet);
     if (result.end)
     {
